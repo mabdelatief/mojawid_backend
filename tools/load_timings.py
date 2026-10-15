@@ -42,15 +42,19 @@ def main():
                            style = EXCLUDED.style, bucket_prefix = EXCLUDED.bucket_prefix,
                            file_pattern = EXCLUDED.file_pattern,
                            timing_source = EXCLUDED.timing_source
-                       RETURNING id""", r).fetchone()[0]
+                       RETURNING id""",
+                    r,
+                ).fetchone()[0]
                 conn.execute("DELETE FROM recitation_ayah_timing WHERE recitation_id = %s", (rid,))
                 with conn.cursor().copy(
-                        "COPY recitation_ayah_timing (recitation_id, surah, ayah, segments) FROM STDIN") as cp:
+                    "COPY recitation_ayah_timing (recitation_id, surah, ayah, segments) FROM STDIN"
+                ) as cp:
                     for key, segs in data["ayat"].items():
                         s, a = map(int, key.split(":"))
                         cp.write_row((rid, s, a, segs))
-            n = conn.execute("SELECT count(*) FROM recitation_ayah_timing WHERE recitation_id = %s",
-                             (rid,)).fetchone()[0]
+            n = conn.execute(
+                "SELECT count(*) FROM recitation_ayah_timing WHERE recitation_id = %s", (rid,)
+            ).fetchone()[0]
             print(f"{r['slug']:20s} id={rid} ayat={n}")
 
 

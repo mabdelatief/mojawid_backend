@@ -13,7 +13,8 @@ recitations, 2026-10-15). Its words are Tanzil's Uthmani text split on spaces, w
 quran-transcript gives us, so the word indexes carry over unchanged.
 
 Output, in OUT_DIR:
-  <slug>.json     {"recitation": {...}, "ayat": {"s:a": [[first_word, last_word, start_ms, end_ms], ...]}}
+  <slug>.json     {"recitation": {...},
+                   "ayat": {"s:a": [[first_word, last_word, start_ms, end_ms], ...]}}
                   word indexes 0-based and inclusive; ms into that ayah's mp3 in our bucket
   coverage.json   per recitation: words with their own timing, in merged spans, without timing,
                   dropped segments by reason, repaired ayat (to be checked by ear)
@@ -33,41 +34,106 @@ import zipfile
 
 from quran_transcript import Aya
 
-RELEASE_URL = ("https://github.com/cpfair/quran-align/releases/download/"
-               "release-2016-11-24/quran-align-data-2016-11-24.zip")
+RELEASE_URL = (
+    "https://github.com/cpfair/quran-align/releases/download/"
+    "release-2016-11-24/quran-align-data-2016-11-24.zip"
+)
 RELEASE_SHA1 = "6fcd48c0f8320ed1ae5fef58184a3924ae1fd264"
 
 # The recitations Mojawid offers. AbdulBaset Mujawwad and Minshawi Mujawwad stay in the bucket
 # but are not offered: 2.4 % of their words have no timing of their own.
 RECITATIONS = [
     # slug, name_ar, name_en, style, bucket prefix, cpfair file, quran.com id, file sha1
-    ("abdulbaset-murattal", "عبد الباسط عبد الصمد", "AbdulBaset AbdulSamad", "murattal",
-     "AbdulBaset/Murattal/mp3/", "Abdul_Basit_Murattal_64kbps", 2,
-     "029e32d2cdc869e2f33ae86fd21214952d18f33d"),
-    ("sudais", "عبد الرحمن السديس", "Abdur-Rahman as-Sudais", "murattal",
-     "Sudais/mp3/", "Abdurrahmaan_As-Sudais_192kbps", 3,
-     "4315194bc88db14192201426fb4f6617bffac4ac"),
-    ("shatri", "أبو بكر الشاطري", "Abu Bakr al-Shatri", "murattal",
-     "Shatri/mp3/", "Abu_Bakr_Ash-Shaatree_128kbps", 4,
-     "8861fadb68bad84ae5189227e0bcdd7a7127e976"),
-    ("rifai", "هاني الرفاعي", "Hani ar-Rifai", "murattal",
-     "Rifai/mp3/", "Hani_Rifai_192kbps", 5,
-     "22e0cea40ff434848295f8ce959ab885292ebb7b"),
-    ("husary", "محمود خليل الحصري", "Mahmoud Khalil al-Husary", "murattal",
-     "Husary_64kbps/", "Husary_64kbps", 6,
-     "8e7a24f66f98f176dfddf65b434643a6655c694d"),
-    ("minshawi-murattal", "محمد صديق المنشاوي", "Mohamed Siddiq al-Minshawi", "murattal",
-     "Minshawi/Murattal/mp3/", "Minshawy_Murattal_128kbps", 9,
-     "2a24d42e7f3a018c56600fc4ddd580f214b20a39"),
-    ("shuraym", "سعود الشريم", "Sa'ud ash-Shuraym", "murattal",
-     "Shuraym/mp3/", "Saood_ash-Shuraym_128kbps", 10,
-     "59fd80d144caa6fe79a917a8d1dddf18087b3bcc"),
-    ("tablawi", "محمد محمود الطبلاوي", "Mohamed al-Tablawi", "murattal",
-     "Mohammad_al_Tablaway_128kbps/", "Mohammad_al_Tablaway_128kbps", 11,
-     "dce92289eebd76380d1dae22f2329493a49f06db"),
-    ("husary-muallim", "محمود خليل الحصري", "Mahmoud Khalil al-Husary", "muallim",
-     "Husary_Muallim_128kbps/", "Husary_Muallim_128kbps", 12,
-     "b03e6c9188934504b6921d22b1f2e2b72ee773eb"),
+    (
+        "abdulbaset-murattal",
+        "عبد الباسط عبد الصمد",
+        "AbdulBaset AbdulSamad",
+        "murattal",
+        "AbdulBaset/Murattal/mp3/",
+        "Abdul_Basit_Murattal_64kbps",
+        2,
+        "029e32d2cdc869e2f33ae86fd21214952d18f33d",
+    ),
+    (
+        "sudais",
+        "عبد الرحمن السديس",
+        "Abdur-Rahman as-Sudais",
+        "murattal",
+        "Sudais/mp3/",
+        "Abdurrahmaan_As-Sudais_192kbps",
+        3,
+        "4315194bc88db14192201426fb4f6617bffac4ac",
+    ),
+    (
+        "shatri",
+        "أبو بكر الشاطري",
+        "Abu Bakr al-Shatri",
+        "murattal",
+        "Shatri/mp3/",
+        "Abu_Bakr_Ash-Shaatree_128kbps",
+        4,
+        "8861fadb68bad84ae5189227e0bcdd7a7127e976",
+    ),
+    (
+        "rifai",
+        "هاني الرفاعي",
+        "Hani ar-Rifai",
+        "murattal",
+        "Rifai/mp3/",
+        "Hani_Rifai_192kbps",
+        5,
+        "22e0cea40ff434848295f8ce959ab885292ebb7b",
+    ),
+    (
+        "husary",
+        "محمود خليل الحصري",
+        "Mahmoud Khalil al-Husary",
+        "murattal",
+        "Husary_64kbps/",
+        "Husary_64kbps",
+        6,
+        "8e7a24f66f98f176dfddf65b434643a6655c694d",
+    ),
+    (
+        "minshawi-murattal",
+        "محمد صديق المنشاوي",
+        "Mohamed Siddiq al-Minshawi",
+        "murattal",
+        "Minshawi/Murattal/mp3/",
+        "Minshawy_Murattal_128kbps",
+        9,
+        "2a24d42e7f3a018c56600fc4ddd580f214b20a39",
+    ),
+    (
+        "shuraym",
+        "سعود الشريم",
+        "Sa'ud ash-Shuraym",
+        "murattal",
+        "Shuraym/mp3/",
+        "Saood_ash-Shuraym_128kbps",
+        10,
+        "59fd80d144caa6fe79a917a8d1dddf18087b3bcc",
+    ),
+    (
+        "tablawi",
+        "محمد محمود الطبلاوي",
+        "Mohamed al-Tablawi",
+        "murattal",
+        "Mohammad_al_Tablaway_128kbps/",
+        "Mohammad_al_Tablaway_128kbps",
+        11,
+        "dce92289eebd76380d1dae22f2329493a49f06db",
+    ),
+    (
+        "husary-muallim",
+        "محمود خليل الحصري",
+        "Mahmoud Khalil al-Husary",
+        "muallim",
+        "Husary_Muallim_128kbps/",
+        "Husary_Muallim_128kbps",
+        12,
+        "b03e6c9188934504b6921d22b1f2e2b72ee773eb",
+    ),
 ]
 
 
@@ -125,9 +191,18 @@ def repair_shift(segs: list[list[int]], n: int) -> list[list[int]] | None:
 
 
 def import_one(entries: list[dict], counts: dict[tuple[int, int], int]):
-    ayat, stats = {}, {"words": 0, "own_timing": 0, "in_merged_span": 0, "no_timing": 0,
-                       "dropped": {"zero_or_negative_length": 0, "past_last_word": 0},
-                       "repaired_ayat": [], "ayat_without_timing": []}
+    ayat, stats = (
+        {},
+        {
+            "words": 0,
+            "own_timing": 0,
+            "in_merged_span": 0,
+            "no_timing": 0,
+            "dropped": {"zero_or_negative_length": 0, "past_last_word": 0},
+            "repaired_ayat": [],
+            "ayat_without_timing": [],
+        },
+    )
     seen = set()
     for e in entries:
         key = (e["surah"], e["ayah"])
@@ -165,7 +240,9 @@ def import_one(entries: list[dict], counts: dict[tuple[int, int], int]):
 
 
 def main():
-    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     p.add_argument("out_dir", type=pathlib.Path)
     p.add_argument("--cache", type=pathlib.Path, default=pathlib.Path(".cache/quran-align"))
     args = p.parse_args()
@@ -176,16 +253,27 @@ def main():
     coverage = {}
     for slug, name_ar, name_en, style, prefix, cp_name, qcom_id, sha1 in RECITATIONS:
         ayat, stats = import_one(load_file(z, cp_name, sha1), counts)
-        recitation = {"slug": slug, "name_ar": name_ar, "name_en": name_en, "style": style,
-                      "bucket_prefix": prefix, "file_pattern": "{surah:03d}{ayah:03d}.mp3",
-                      "timing_source": f"cpfair/quran-align 2016-11-24 {cp_name} (CC-BY 4.0)",
-                      "quran_com_recitation_id": qcom_id}
+        recitation = {
+            "slug": slug,
+            "name_ar": name_ar,
+            "name_en": name_en,
+            "style": style,
+            "bucket_prefix": prefix,
+            "file_pattern": "{surah:03d}{ayah:03d}.mp3",
+            "timing_source": f"cpfair/quran-align 2016-11-24 {cp_name} (CC-BY 4.0)",
+            "quran_com_recitation_id": qcom_id,
+        }
         (args.out_dir / f"{slug}.json").write_text(
-            json.dumps({"recitation": recitation, "ayat": ayat}, ensure_ascii=False, separators=(",", ":")))
+            json.dumps(
+                {"recitation": recitation, "ayat": ayat}, ensure_ascii=False, separators=(",", ":")
+            )
+        )
         coverage[slug] = stats
-        print(f"{slug:20s} words={stats['words']} own={stats['own_timing']} "
-              f"merged={stats['in_merged_span']} none={stats['no_timing']} "
-              f"dropped={stats['dropped']} repaired={len(stats['repaired_ayat'])}")
+        print(
+            f"{slug:20s} words={stats['words']} own={stats['own_timing']} "
+            f"merged={stats['in_merged_span']} none={stats['no_timing']} "
+            f"dropped={stats['dropped']} repaired={len(stats['repaired_ayat'])}"
+        )
     (args.out_dir / "coverage.json").write_text(json.dumps(coverage, ensure_ascii=False, indent=1))
 
 

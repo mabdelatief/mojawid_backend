@@ -1,0 +1,84 @@
+[project]
+name = "mojawid-backend"
+version = "0.1.0"
+description = "Backend for Mojawid, a free Quran recitation practice app"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+# Runtime dependencies arrive with the architecture plan. When quran-transcript is added it must
+# be the patched copy, `quran-transcript==0.6.4+muaalem.1` from the vendored path (CLAUDE.md;
+# enforced by the discipline scan).
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "mypy>=1.18",
+  "pytest>=8.4",
+  "pytest-asyncio>=1.2",
+  "ruff>=0.14",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+# `.claude/` holds the agent tooling (hooks, discipline scanner); it runs on the host python and
+# is not part of the service.
+extend-exclude = [".claude", ".cache"]
+
+[tool.ruff.lint]
+select = [
+  "E",
+  "F",
+  "I",
+  "B",
+  "UP",
+  "ASYNC",
+  "SIM",
+  # Complexity / function-size caps from CLAUDE.md "Limits & complexity"
+  "C901",    # cyclomatic complexity
+  "PLR0911", # too-many-return-statements
+  "PLR0912", # too-many-branches
+  "PLR0913", # too-many-arguments
+  "PLR0915", # too-many-statements
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pylint]
+max-args = 6
+max-branches = 12
+max-returns = 6
+max-statements = 50
+
+[tool.ruff.lint.per-file-ignores]
+"app/db/migrations/versions/*.py" = [
+  "E501",
+  "I001",
+  "C901",
+  "PLR0911",
+  "PLR0912",
+  "PLR0913",
+  "PLR0915",
+]
+# Nothing else, on purpose: refactor to fit the caps instead of adding entries here (the
+# discipline scan blocks new ones).
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+files = ["app", "tests"]
+exclude = ["^tools/", "^\\.claude/"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
