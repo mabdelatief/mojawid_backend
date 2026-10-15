@@ -26,7 +26,7 @@ worker gets wired up before that, once there's a Modal account.
 
 ```
 Flutter app ──HTTPS──▶ API (app/, FastAPI)  ──Postgres (recitations, idempotency, limits, reports)
-   │                     │                  ──private bucket (report audio; dev: MinIO)
+   │                     │                  ──private bucket (report audio, Linode Object Storage)
    │                     └─HTTP + token──▶ Worker (app/worker/, FastAPI)
    │                                         dev: laptop GPU · prod: Modal Server (L4, eu)
    └──direct──▶ reciter mp3s in our public bucket (verseaudiofiles)
@@ -185,13 +185,13 @@ always on).
 
 | # | Builds | Done when |
 |---|---|---|
-| 1 | **API skeleton + dev compose.** pyproject extras; compose with postgres:17 and MinIO (+ the `mojawid-reports` bucket); `app/{main,config,errors,logging}`, health, db base/session; Alembic async env; migration 0001 for the recitation tables, which replaces `tools/sql/recitations.sql` (deleted); `load_timings.py` needs the migrated schema; `docs/dev.md` | `alembic upgrade head` + `alembic check` report nothing to do; the loader puts **9 recitations and 56,124 rows into the dev DB** (task #8); unit + db tests; scan and mypy clean |
+| 1 | **API skeleton + dev compose.** pyproject extras; compose with postgres:17 (no local S3: dev uses the real Linode bucket); `app/{main,config,errors,logging}`, health, db base/session; Alembic async env; migration 0001 for the recitation tables, which replaces `tools/sql/recitations.sql` (deleted); `load_timings.py` needs the migrated schema; `docs/dev.md` | `alembic upgrade head` + `alembic check` report nothing to do; the loader puts **9 recitations and 56,124 rows into the dev DB** (task #8); unit + db tests; scan and mypy clean |
 | 2 | **Access layer + reciters + contract draft.** Key, install id and IP deps; rate-limit table (migration 0002, atomic upsert); reciter repo/service/routes; CORS; `docs/contracts/api.md` + OpenAPI snapshot test | 401/400/429 paths tested; 50 concurrent increments give an exact count; timings for 1:1–7 match the import |
 | 3 | **Vendored quran-transcript + `engine/text` + meta/reference.** Ported text tests; import-boundary test; text-golden generator | Ported tests pass; L3 matches exactly; 6-ayah reference in under 50 ms when warm |
 | 4 | **The pipeline's CPU side.** `engine/pipeline/*` incl. the new fields and allowed sifat; ported pipeline tests; full golden generator | Ported tests pass; **L1 matches exactly** on every Husary case (and the private ones if present); `word_times` within tolerance of the DB timings |
 | 5 | **The worker on the laptop GPU.** `model_pins`, models/loader/gpu, memfd audio, raw-body reader, worker app | Worker route tests; GPU tests; **L2 matches**; cold-load and per-request times logged; nothing written to `/tmp` during a request |
 | 6 | **API analyses end to end.** Worker adapter, idempotency table (migration 0003), analysis/warm-up services, hourly purge | Retry / timeout / idempotency tests with a fake worker (two concurrent POSTs → one worker call); limits; a dev run end to end, API → local worker |
-| 7 | **Reports + admin.** Migration 0004, object-store adapter (MinIO in dev), report routes, admin page, purge | MinIO integration: create → upload → view → "reviewed" deletes the audio → the row goes after 30 days |
+| 7 | **Reports + admin.** Migration 0004, object-store adapter, a private reports bucket on Linode Object Storage (dev uses it too; created in this phase, with its own access key), report routes, admin page, purge | Integration against the real private bucket: create → upload → view → "reviewed" deletes the audio → the row goes after 30 days |
 | 8 | **The worker on Modal** (needs a Modal account). `worker/modal_app.py`: an `@app.server` on an L4 in `eu`, scaling to zero with a ~300 s scaledown, models baked in at the pinned revisions, offline HF; the API switches with `WORKER_URL` | Laptop API → Modal works; cold start measured; warm-up hides it during a 60 s recording; L2 on the L4, with any bf16 differences recorded and discussed |
 | 9 | *Deferred until there's a Linode + mojawid.com:* production Dockerfile (API only, no torch), prod compose with TLS, CI, backups, real client IPs behind the proxy | Smoke test on the host; a backup restores |
 

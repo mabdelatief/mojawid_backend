@@ -1,5 +1,6 @@
-# Dev only. The API and the worker run on the host (uv) during development; this file holds
-# their dependencies. Production packaging comes later (phase 9).
+# Dev only: the database. The API and the worker run on the host (uv) during development.
+# Object storage is the real Linode bucket (docs/recitations.md), so there's no local S3.
+# Production packaging comes later (phase 9).
 name: mojawid
 
 services:
@@ -21,43 +22,5 @@ services:
       retries: 20
     restart: unless-stopped
 
-  # Private bucket for bad-result report audio (the only audio ever stored, with consent).
-  mojawid_minio:
-    image: minio/minio:latest  # same image cms uses; MinIO no longer tags community releases on Docker Hub
-    pull_policy: missing
-    container_name: mojawid_minio
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: mojawid
-      MINIO_ROOT_PASSWORD: mojawid-dev-secret
-    ports:
-      - "127.0.0.1:9010:9000"
-      - "127.0.0.1:9011:9001"
-    volumes:
-      - mojawid_minio:/data
-    networks:
-      default:
-        aliases: [minio]  # S3 hostnames can't contain underscores
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-    restart: unless-stopped
-
-  mojawid_minio_init:
-    image: minio/mc:latest
-    pull_policy: missing
-    container_name: mojawid_minio_init
-    depends_on:
-      mojawid_minio:
-        condition: service_healthy
-    entrypoint: >
-      sh -c "mc alias set local http://minio:9000 mojawid mojawid-dev-secret &&
-             mc mb --ignore-existing local/mojawid-reports &&
-             mc anonymous set none local/mojawid-reports"
-    restart: "no"
-
 volumes:
   mojawid_pgdata:
-  mojawid_minio:

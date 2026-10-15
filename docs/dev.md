@@ -1,13 +1,13 @@
 # Running Mojawid's backend in dev
 
-Dev runs on this laptop: Postgres and MinIO in docker compose, and the API on the host through
-`uv`. The GPU worker joins in phase 5. There is no staging; production packaging comes last
-(see the plan in CLAUDE.md "Read first" docs).
+Dev runs on this laptop: Postgres in docker compose, and the API on the host through `uv`.
+Object storage is the real Linode bucket; there's no local S3. The GPU worker joins in phase 5.
+There is no staging; production packaging comes last (`docs/architecture.md`).
 
 ## First time
 
 ```
-docker compose up -d                 # Postgres on :5452, MinIO on :9010 (console :9011)
+docker compose up -d                 # Postgres on :5452
 uv sync --extra api                  # API dependencies + dev tools into .venv/
 .venv/bin/alembic upgrade head       # the schema
 ```
@@ -44,10 +44,11 @@ The DB tests skip, with a reason, when the dev Postgres isn't running. They rebu
 | Service | Address | Credentials (dev only) |
 |---|---|---|
 | Postgres 17 | `localhost:5452`, db `mojawid` | `mojawid` / `mojawid` |
-| MinIO (S3) | `localhost:9010`, console `localhost:9011` | `mojawid` / `mojawid-dev-secret` |
+| Object storage | the real Linode bucket `verseaudiofiles` (eu-central-1), read only | none: the mp3s are public |
 
-The MinIO bucket `mojawid-reports` is private. It will hold bad-result report audio, the only
-audio Mojawid ever stores, and only with consent.
+Reciter audio is read straight from the bucket. Bad-result report audio (phase 7, the only audio
+Mojawid ever stores, and only with consent) will go to a private bucket on the same Linode
+Object Storage; it's set up in that phase.
 
 ## Migrations
 
