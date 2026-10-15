@@ -11,6 +11,8 @@ don't assume it. Nothing is built yet.
    known limits, and what this backend must provide.
 2. `../mojawid_flutter/docs/product.md`: the product. It holds the user's decisions, every
    screen, the corrections to the design export, and the open questions.
+3. `docs/recitations.md`: the reciters offered, the audio bucket, where the word timings come
+   from, and how they're stored.
 
 ## Rules
 
@@ -40,6 +42,10 @@ don't assume it. Nothing is built yet.
   - When a case isn't covered, ask the user; never guess.
 - **A place the model wasn't sure about is never counted as a mistake.** Neither is an
   allowed variant.
+- **Nothing third-party at runtime.** Reciter audio comes from our own bucket and word timings
+  from our own Postgres; never call quran.com, QUL or the like from the running service. Only
+  recitations with word-by-word timing are offered. Pulls from outside sources are one-time
+  copies, one request at a time with sleeps (`docs/recitations.md`).
 
 ## Project tracking (Vikunja)
 

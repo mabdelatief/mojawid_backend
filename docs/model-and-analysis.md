@@ -385,8 +385,8 @@ Linode for the Python service, PostgreSQL, docker compose) is still to be discus
   - ayah audio and word audio (or word timestamps into the ayah audio) for the picked reciter;
   - **every word tap in the app plays this reciter word audio**, the correct word, never the
     user's recording.
-  Sources: the quran.com API, everyayah, and the user's own Linode S3, which holds most
-  recitations.
+  Decided in `docs/recitations.md`: 9 recitations, audio from our Linode bucket, word timings
+  from our own Postgres (imported once from cpfair/quran-align). Nothing third-party at runtime.
 - **Bad-result reports:** the audio, the result shown, the reading settings, category, word and
   note, accepted **only with the user's explicit consent**, stored for investigation, and
   **deleted after review**.
