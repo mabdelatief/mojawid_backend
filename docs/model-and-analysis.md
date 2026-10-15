@@ -352,7 +352,12 @@ not part of Mojawid.
   their own rule (a low-priority open item).
 - **The 10× uncertainty threshold** and recognising each pause-to-pause piece separately were
   both measured without teacher-checked labels. Both are to be re-measured once reviews exist
-  (tajweed_ai task #8). Recognition runs on the whole clip.
+  (tajweed_ai `docs/project-log.md` §11.5). Recognition runs on the whole clip.
+- **A candidate improvement for the rebuild: the sifat outputs as a second opinion.** On one
+  recording the phonemes output dropped the qalqalah of «نُطْعِمُكُمْ» (0.479 against 0.510),
+  while the separate qalqalah output said مقلقل. A place where a sifat output contradicts the
+  phonemes output could also be marked uncertain. It's an idea and hasn't been measured; see
+  tajweed_ai §11.5.
 - **Few voices so far:** all of this was tuned on about 30 recordings from a few reciters, plus
   the Husary clips in the tests. A public app will meet microphones, rooms and voices it hasn't
   seen. The "report a bad result" flow is the way to find these.
