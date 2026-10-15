@@ -4,13 +4,26 @@ version = "0.1.0"
 description = "Backend for Mojawid, a free Quran recitation practice app"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
-# Runtime dependencies arrive with the architecture plan. When quran-transcript is added it must
-# be the patched copy, `quran-transcript==0.6.4+muaalem.1` from the vendored path (CLAUDE.md;
-# enforced by the discipline scan).
-dependencies = []
+# Shared by the API and the worker. quran-transcript (phase 3) must be the patched copy,
+# `quran-transcript==0.6.4+muaalem.1` from the vendored path (CLAUDE.md; enforced by the scan).
+dependencies = [
+  "fastapi>=0.120",
+  "pydantic>=2.12",
+  "pydantic-settings>=2.11",
+  "uvicorn[standard]>=0.38",
+]
+
+[project.optional-dependencies]
+# The public API. Never torch: the worker extra is the only one that brings the model stack.
+api = [
+  "alembic>=1.17",
+  "asyncpg>=0.30",
+  "sqlalchemy[asyncio]>=2.0.44",
+]
 
 [dependency-groups]
 dev = [
+  "httpx>=0.28",
   "mypy>=1.18",
   "pytest>=8.4",
   "pytest-asyncio>=1.2",
@@ -69,6 +82,8 @@ max-statements = 50
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+# Migrations stay exactly as Alembic generated them (CLAUDE.md); they are still linted.
+exclude = ["app/db/migrations/versions/*.py"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -78,7 +93,15 @@ warn_unused_configs = true
 disallow_untyped_defs = true
 files = ["app", "tests"]
 exclude = ["^tools/", "^\\.claude/"]
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+# Third-party packages that ship no type information.
+module = ["asyncpg.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
 testpaths = ["tests"]

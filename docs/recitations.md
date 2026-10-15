@@ -94,8 +94,10 @@ others). They would be cut into per-ayah files to fit the layout above. Deferred
 
 ## In Postgres
 
-Schema: `tools/sql/recitations.sql`. Loader: `tools/load_timings.py`. Re-running the loader
-replaces each recitation's rows, so it's safe to run again.
+- **Schema:** the Alembic migrations, with the models in `app/db/models/recitation.py`.
+- **Loader:** `tools/load_timings.py`. It refuses to run until the database has been migrated.
+  Re-running it replaces each recitation's rows, so it's safe to run again.
+- **Dev:** the dev database holds all 9 recitations (loaded 2026-10-15).
 
 - **`recitation`** (one row per reciter): slug, Arabic and English names, style, bucket prefix,
   file pattern, timing source, `offered`.
@@ -109,7 +111,8 @@ To redo the whole thing:
 
 ```
 uv run tools/import_timings.py OUT_DIR        # downloads the release once into .cache/
-DATABASE_URL=postgresql://… uv run tools/load_timings.py OUT_DIR
+.venv/bin/alembic upgrade head                # the schema
+DATABASE_URL=postgresql://mojawid:mojawid@localhost:5452/mojawid uv run tools/load_timings.py OUT_DIR
 ```
 
 ## Licensing

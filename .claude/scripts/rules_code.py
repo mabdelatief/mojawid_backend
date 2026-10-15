@@ -12,6 +12,7 @@ from pathlib import Path
 
 from scan_common import (
     APP,
+    ERRORS_HOME,
     METADATA_HOME,
     ROUTER_HOMES,
     LineFindings,
@@ -77,15 +78,19 @@ def check_repo_commit(file: Path, added: set[int]) -> LineFindings:
 
 
 def check_httpexception(file: Path, added: set[int]) -> LineFindings:
-    """Errors go through AppError, never HTTPException."""
+    """Errors go through AppError, never HTTPException. Raising it is banned everywhere; importing
+    it only in app/errors.py, whose handler catches the framework's own HTTP errors."""
     tree = parse(file) if _app_code(file) else None
     if tree is None:
         return []
+    imports_allowed = file == ERRORS_HOME
     out: LineFindings = []
     for node in ast.walk(tree):
-        hit = (isinstance(node, ast.Call) and call_name(node) == "HTTPException") or (
-            isinstance(node, ast.ImportFrom) and any(a.name == "HTTPException" for a in node.names)
+        raised = isinstance(node, ast.Call) and call_name(node) == "HTTPException"
+        imported = isinstance(node, ast.ImportFrom) and any(
+            a.name == "HTTPException" for a in node.names
         )
+        hit = raised or (imported and not imports_allowed)
         if hit and node.lineno in added:
             out.append((node.lineno, "use AppError, not HTTPException"))
     return out

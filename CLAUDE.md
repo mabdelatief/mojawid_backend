@@ -1,18 +1,22 @@
 # mojawid_backend
 
 The backend for **Mojawid (مُجَوِّد)**, a free Quran recitation practice app with no accounts.
-It's planned as FastAPI, PostgreSQL and docker compose, with the speech model on Modal and the
-Python service on Linode. **The architecture is not decided yet:** propose it and discuss it,
-don't assume it. Nothing is built yet.
+FastAPI and PostgreSQL. The public API (`app/`) will run on a Linode, and the analysis worker
+(`app/worker/`) on a Modal Server. In dev everything runs on this laptop: docker compose, plus
+the laptop GPU for the worker. The architecture and the build phases were agreed with the user
+in `docs/architecture.md`; follow it, and discuss before changing it.
 
 ## Read first
 
-1. `docs/model-and-analysis.md`: the model, how a recording becomes a result, the result data,
+1. `docs/architecture.md`: the parts, the privacy rules in code, the API surface, and the build
+   phases with their status.
+2. `docs/model-and-analysis.md`: the model, how a recording becomes a result, the result data,
    known limits, and what this backend must provide.
-2. `../mojawid_flutter/docs/product.md`: the product. It holds the user's decisions, every
+3. `../mojawid_flutter/docs/product.md`: the product. It holds the user's decisions, every
    screen, the corrections to the design export, and the open questions.
-3. `docs/recitations.md`: the reciters offered, the audio bucket, where the word timings come
+4. `docs/recitations.md`: the reciters offered, the audio bucket, where the word timings come
    from, and how they're stored.
+5. `docs/dev.md`: running it in dev, tests, migrations.
 
 ## Rules
 

@@ -21,6 +21,7 @@ MIGRATIONS_VERSIONS = APP / "db" / "migrations" / "versions"
 ADAPTERS = APP / "adapters"  # the only place allowed to talk to other systems over HTTP
 ROUTER_HOMES = (APP / "api" / "router.py", APP / "main.py")  # where routers get mounted
 METADATA_HOME = APP / "db" / "base.py"  # the one Base / MetaData
+ERRORS_HOME = APP / "errors.py"  # the exception handlers: the one place that catches HTTPException
 MODEL_PINS = APP / "model_pins.py"  # the one place model revisions live
 PYPROJECT = REPO_ROOT / "pyproject.toml"
 

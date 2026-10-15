@@ -33,6 +33,7 @@ def tmp_tree(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     for module in (code, mojawid, repo):
         monkeypatch.setattr(module, "APP", app, raising=False)
     monkeypatch.setattr(code, "METADATA_HOME", app / "db" / "base.py")
+    monkeypatch.setattr(code, "ERRORS_HOME", app / "errors.py")
     monkeypatch.setattr(code, "ROUTER_HOMES", (app / "api" / "router.py", app / "main.py"))
     monkeypatch.setattr(mojawid, "ADAPTERS", app / "adapters")
     monkeypatch.setattr(mojawid, "MODEL_PINS", app / "model_pins.py")
@@ -69,6 +70,8 @@ BAD_LINE_CASES = [
     (code.check_lazy_raise, "app/models/m.py", "r = relationship('X')\n", "lazy"),
     (code.check_repo_commit, "app/repositories/r.py", "await self.s.commit()\n", "commit"),
     (code.check_httpexception, "app/a.py", "raise HTTPException(404)\n", "AppError"),
+    (code.check_httpexception, "app/a.py", "from fastapi import HTTPException\n", "AppError"),
+    (code.check_httpexception, "app/errors.py", "raise HTTPException(404)\n", "AppError"),
     (code.check_route_handlers, "app/api/a.py", ROUTE_OK.replace("async def", "def"), "async"),
     (
         code.check_route_handlers,
@@ -146,6 +149,12 @@ def test_rule_quiet_on_clean_code(tmp_tree: Path, rule: Any) -> None:
 def test_only_added_lines_are_checked(tmp_tree: Path) -> None:
     path = write(tmp_tree, "app/a.py", "raise HTTPException(404)\nx = 1\n")
     assert code.check_httpexception(path, {2}) == []
+
+
+def test_error_handlers_may_import_httpexception(tmp_tree: Path) -> None:
+    source = "from starlette.exceptions import HTTPException as StarletteHTTPException\n"
+    path = write(tmp_tree, "app/errors.py", source)
+    assert run_rule(code.check_httpexception, path) == []
 
 
 def test_reports_code_may_keep_a_recording(tmp_tree: Path) -> None:

@@ -2,7 +2,10 @@
 # requires-python = ">=3.12"
 # dependencies = ["psycopg[binary]>=3.2"]
 # ///
-"""Load the output of tools/import_timings.py into Postgres (schema: tools/sql/recitations.sql).
+"""Load the output of tools/import_timings.py into Postgres.
+
+The schema comes from the Alembic migrations (`alembic upgrade head`); this tool only fills it
+and refuses to run against a database that hasn't been migrated.
 
 Each recitation is replaced in its own transaction: the row is upserted by slug and its ayah
 timings are rewritten, so re-running after a new import is safe.
@@ -17,7 +20,12 @@ import sys
 
 import psycopg
 
-SCHEMA = pathlib.Path(__file__).with_name("sql") / "recitations.sql"
+
+def require_schema(conn: psycopg.Connection) -> None:
+    """Stop unless the migrations have created the recitation tables."""
+    row = conn.execute("SELECT to_regclass('public.recitation_ayah_timing')").fetchone()
+    if row is None or row[0] is None:
+        raise SystemExit("recitation tables missing: run `alembic upgrade head` first")
 
 
 def main():
@@ -26,8 +34,7 @@ def main():
     if not files:
         raise SystemExit(f"no timing files in {src}")
     with psycopg.connect(os.environ["DATABASE_URL"]) as conn:
-        conn.execute(SCHEMA.read_text())
-        conn.commit()
+        require_schema(conn)
         for f in files:
             data = json.loads(f.read_text())
             r = data["recitation"]

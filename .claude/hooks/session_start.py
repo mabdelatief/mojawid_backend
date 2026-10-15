@@ -69,6 +69,8 @@ def main() -> int:
     lines += [
         "**Read before working on mojawid_backend:**",
         "  - `CLAUDE.md` (hard rules, auto-loaded)",
+        "  - `docs/architecture.md` (the agreed architecture and build phases, with status)",
+        "  - `docs/dev.md` (docker compose + uv, tests, migrations)",
         "  - `docs/model-and-analysis.md` (the model, the pipeline, what the backend provides)",
         "  - `docs/recitations.md` (reciters, audio bucket, word timings)",
         "  - `../mojawid_flutter/docs/product.md` (the product and its decisions)",
