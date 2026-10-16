@@ -3,10 +3,11 @@
 Approved with the user on 2026-10-15. This file is the decision record: what the backend is made
 of, why, and the order it's built in. Each phase updates the "Status" line below when it lands.
 
-**Status:** phases 1–3 done: API skeleton, dev compose, recitation tables + timings loaded;
-access layer, reciters and timings; vendored patched quran-transcript, `app/engine/text` (ported,
-matching the lab on 216 text goldens), `/v1/meta` and `/v1/reference`. Contract:
-`docs/contracts/`.
+**Status:** phases 1–4 done: API skeleton, dev compose, recitation tables + timings loaded;
+access layer, reciters and timings; `app/engine/text` with `/v1/meta` and `/v1/reference` (216
+text goldens match the lab); `app/engine/pipeline`, the CPU side of the analysis (on the lab's
+own model outputs it gives exactly the lab's result on 22 Husary cases) plus the new fields
+(word times, mistake keys and marks, harakat, allowed sifat). Contract: `docs/contracts/`.
 
 ## Context
 Mojawid needs a backend that gives the app:

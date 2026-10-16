@@ -21,6 +21,15 @@ api = [
   "asyncpg>=0.30",
   "sqlalchemy[asyncio]>=2.0.44",
 ]
+# The analysis worker: the model stack, pinned like tajweed_ai's (the reference). transformers 5
+# removed a private constant quran-muaalem imports (upstream issue #41).
+worker = [
+  "diff-match-patch>=20241021",
+  "levenshtein>=0.27.1",
+  "quran-muaalem==0.2.2",
+  "torch>=2.7,<2.12",
+  "transformers>=4.55,<5",
+]
 
 [dependency-groups]
 dev = [
@@ -36,6 +45,12 @@ package = false
 
 [tool.uv.sources]
 quran-transcript = { path = "vendor/quran-transcript" }
+torch = { index = "pytorch-cu128" }
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
 
 [tool.ruff]
 line-length = 100
@@ -101,7 +116,7 @@ plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
 # Third-party packages that ship no type information.
-module = ["asyncpg.*", "quran_transcript.*"]
+module = ["asyncpg.*", "quran_transcript.*", "quran_muaalem.*", "diff_match_patch.*", "Levenshtein.*", "transformers.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

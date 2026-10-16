@@ -54,6 +54,19 @@ changes on purpose, running in the lab's environment:
 uv run --project ../tajweed_ai python -m tools.golden.make_text_golden
 ```
 
+`tests/golden/pipeline/` holds the lab's analysis of 22 Husary cases (single ayat, joined ayat,
+an opening, going back, other reading settings, raum, the wrong text) with the model's raw
+outputs, made on the GPU by the lab itself. `tests/unit/engine/test_pipeline_golden.py` runs the
+port's CPU pipeline on those same outputs and requires the lab's result exactly. Regenerate (lab
+environment, GPU; the Husary clips come from our bucket into `.cache/`):
+
+```
+HF_HUB_OFFLINE=1 uv run --project ../tajweed_ai python -m tools.golden.make_pipeline_golden
+```
+
+The pipeline needs the `worker` extra (torch, transformers, quran-muaalem):
+`uv sync --extra api --extra worker`.
+
 ## Services
 
 | Service | Address | Credentials (dev only) |

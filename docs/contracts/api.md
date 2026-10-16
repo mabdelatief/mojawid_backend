@@ -170,14 +170,34 @@ request.
 | `GET /v1/analyses/{client_id}` | 6 | 200 result / 202 still running / 404. Ask this after a timeout, before re-uploading |
 | `POST /v1/reports` + `PUT /v1/reports/{id}/audio` | 7 | Bad-result report. Only with the user's explicit consent (`consent: true`); category, word, note, the result shown, reading settings |
 
-**What the result will carry** (field details in `docs/model-and-analysis.md` §4): the lab
-report fields, plus three new ones.
-- `word_times`: each word's span in the user's own recording, for «استمع لتسجيلي».
-- A stable `key` per mistake (`"{sura}:{aya}:{word}:{error_type}"`), for comparing attempts.
-- The madd count in harakat.
-- Sifat that differ where both readings are correct are marked `allowed`.
+**What the result will carry.** These fields are built and tested in the engine (phase 4); the
+endpoint arrives in phase 6. The lab's report fields are listed in `docs/model-and-analysis.md`
+§4. New for Mojawid:
 
-Uncertain places and allowed variants are never counted as mistakes.
+- **On every error row:**
+  - `sura`, `aya`, `word`: the place, with `word` indexed within the ayah as everywhere else.
+    A mistake in an opening has `sura`/`aya` null.
+  - `key`: `"{sura}:{aya}:{word}:{error_type}"`, or `"{istiaatha|basmala}:0:{word}:{error_type}"`
+    in an opening. It stays the same between attempts, so the app compares the **sets** of keys
+    of counted mistakes (fixed / remaining / new). It isn't unique: a word said twice gives the
+    same key, which is what the product wants.
+  - `mark`, what to draw: `letter` (most serious), `haraka`, `tajweed`, `uncertain` (dotted «؟»),
+    or for something that isn't a mistake, `variant` (an allowed way, shown dimmed with its
+    reason) or `false_alarm`.
+  - `counted`: true only for `letter`, `haraka` and `tajweed`. Uncertain places and allowed
+    variants are never counted, and never "worse" between attempts.
+  - `expected_harakat` / `heard_harakat`: madd rows only, in harakat. Null for ghunnah, which is
+    shown as a state (`ghunnah`: `short`/`long`/`missing`/`izhar`), never a number.
+- **`word_times`:** `[{segment, word, sura, aya, start_s, end_s}]`, each recited word's span in
+  the user's own recording, for «استمع لتسجيلي».
+  - Play the local copy from `start_s` to `end_s`.
+  - A word said again after going back has one entry per recital (its own `segment`).
+  - A skipped word, or an opening, has none.
+  - Checked against Husary's own word timings: every word found, within 0.3 s.
+- **Sifat rows:** each attribute has `allowed`. It's true where the attribute differs but the
+  rules count both ways as correct (e.g. the raa of «مِصْرَ» at a stop); show it as correct.
+- **`warnings`:** `[{code, edges, message_ar}]`, with `code` either `cut_in_speech` (`edges`:
+  `start` and/or `end`) or `over_30s`.
 
 **Analysis error codes, coming:** `audio_too_large` (413), `audio_unreadable`,
 `audio_too_short`, `audio_too_long`, `ayah_not_recognised` (422), `analysis_in_progress`

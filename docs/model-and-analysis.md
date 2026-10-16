@@ -266,7 +266,8 @@ Alongside the report it returns `detection` (auto mode: candidates, `clear`, ope
 - `word_index`, `segment`;
 - `expected_text` / `heard_text`, written for people: plain Arabic with notes such as «مد ٤
   حركات», never the model's own symbols (`muaalem_lab/readable.py`);
-- `expected_len` / `predicted_len` (madd, in letters);
+- `expected_len` / `predicted_len` (madd, in harakat: explain_error already counts a leen madd
+  of N letters as N + 1);
 - `rules`, with Arabic names;
 - `ghunnah`: `short` / `long` / `missing` / `izhar`;
 - `likely_false_alarm` + `valid_variant`: the difference is actually correct (an allowed madd
@@ -300,7 +301,11 @@ Alongside the report it returns `detection` (auto mode: candidates, `clear`, ope
 - **A stable key per mistake,** for comparing attempts: ayah + word + kind, built from
   `segments` and `word_index`.
 - **Mistake rows for the bottom sheet** need the madd count in harakat. `expected_len` /
-  `predicted_len` are letters, which is the same number except for leen (letters + 1).
+  `predicted_len` already are harakat, leen included (checked 2026-10-16: 3 letters → 4).
+  - *Correction (2026-10-16):* this file used to say they were letters with leen +1. The lab's
+    `_valid_variant` makes the same mistake: it adds 1 for leen again, so a leen read at the
+    allowed 2 or 6 harakat is called a mistake and one read at 3 is called allowed. Ported
+    unchanged for now; whether to fix it in Mojawid is the user's call.
 
 ## 5. How the lab app shows a result today
 
