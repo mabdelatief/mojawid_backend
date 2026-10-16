@@ -16,7 +16,7 @@ from app.engine.text import rules as R
 from app.engine.text.moshaf import moshaf_all_options
 from app.engine.text.quran_text import ayah_words
 from app.engine.text.tajweed import CLASSES
-from tools.rules_review import build, export, server, store
+from tools.rules_review import build, export, sections, server, store
 
 CONTENT: dict[str, Any] = json.loads(server.CONTENT.read_text())
 ITEMS = {it["id"]: it for sec in CONTENT["sections"] for it in sec["items"]}
@@ -32,11 +32,13 @@ def test_ids_are_unique_and_hashes_match_the_text() -> None:
 
 def test_every_rules_entry_has_an_item() -> None:
     settings = {o.name for o in moshaf_all_options()} | set(R.DEFAULT.fixed)
-    assert {f"setting.{n}" for n in settings} <= ITEMS.keys()
+    assert {f"setting.{n}" for n in settings - sections.NOT_TAJWEED} <= ITEMS.keys()
+    assert not {f"setting.{n}" for n in sections.NOT_TAJWEED} & ITEMS.keys()
     allowed = {f"setting.{n}" for n in R.DEFAULT.allowed if n != "rewaya"}
     assert all(ITEMS[i]["status"] == "ruled" for i in allowed)
     assert all(ITEMS[f"setting.{n}"]["status"] == "fixed" for n in R.DEFAULT.fixed)
-    assert all(ITEMS[f"setting.{n}"]["status"] == "unreviewed" for n in R.UNREVIEWED)
+    unreviewed = set(R.UNREVIEWED) - sections.NOT_TAJWEED
+    assert all(ITEMS[f"setting.{n}"]["status"] == "unreviewed" for n in unreviewed)
     assert {f"madd_lengths.{k}" for k in R.DEFAULT.madd_lengths} <= ITEMS.keys()
     both = next(s for s in CONTENT["sections"] if s["id"] == "both_valid")
     assert len(both["items"]) == len(R.DEFAULT.both_valid)

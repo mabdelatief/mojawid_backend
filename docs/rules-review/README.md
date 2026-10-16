@@ -6,7 +6,7 @@ Cloudflare email login as the lab.
 
 ## What's in it
 
-`content.json` (generated, committed) holds 114 lines in 9 sections:
+`content.json` (generated, committed) holds 111 lines in 9 sections, tajweed rules only:
 - the reading settings and their places in the Quran;
 - madd lengths and the munfasil/muttasil pairs;
 - the places where both ways are correct;
@@ -19,7 +19,10 @@ Cloudflare email login as the lab.
 
 Each line comes from one entry of `app/engine/text/rules.py`, one behaviour in
 `docs/model-and-analysis.md`, or one kind found by the scan in `tools/rules_review/scan.py`.
-The Arabic wording is in `tools/rules_review/wording.py`. Ayat and examples always come from
+Three of the app's reading settings are left off: recitation speed, takbeer, and the sakin
+before a hamza. quran-transcript declares them but its phonetizer never reads them, so they
+aren't tajweed rules and change nothing (`NOT_TAJWEED` in `sections.py`). The Arabic wording is
+in `tools/rules_review/wording.py`. Ayat and examples always come from
 the Quran text, phonetized at the default settings. A ruling about a stop is shown read with
 that stop.
 

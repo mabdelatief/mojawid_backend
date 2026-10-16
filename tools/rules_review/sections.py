@@ -53,6 +53,9 @@ RAA_YASR_WORD = re.compile("^(ف?أسر|يسر)$")
 SETTING_EXAMPLES = 2
 # settings about a stop on the word: shown read with that stop
 SETTING_STOP = {"alif_salasila", "yaa_ataan"}
+# settings that are not tajweed rules: quran-transcript declares them but its phonetizer never
+# reads them, so they change nothing in the analysis. Left off the page (the user, 2026-10-16)
+NOT_TAJWEED = {"recitation_speed", "takbeer", "saken_before_hamz"}
 
 
 def item(id_: str, title: str, status: str, source: str, **parts: Iterable[Any]) -> Item:
@@ -197,7 +200,11 @@ def _setting_item(name: str, choices: list[R.Value], default: R.Value, found: Fo
 
 def settings_section(found: Found) -> dict[str, Any]:
     options: list[ReadingOption] = moshaf_all_options()
-    items = [_setting_item(o.name, o.choices, o.default, found) for o in options]
+    items = [
+        _setting_item(o.name, o.choices, o.default, found)
+        for o in options
+        if o.name not in NOT_TAJWEED
+    ]
     for name, value in R.DEFAULT.fixed.items():
         items.append(_setting_item(name, [value], value, found))
     return section("settings", items)
