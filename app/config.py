@@ -56,6 +56,10 @@ class Settings(BaseSettings):
     default_reciter: str = "husary"
     max_timing_ayat: int = 20
 
+    # --- Text ---
+    # Most ayat a reciter may choose in manual mode (auto mode is limited by the 60 s recording).
+    max_ayat_manual: int = 6
+
     @model_validator(mode="after")
     def _production_secrets(self) -> "Settings":
         """Refuse to start in production with a dev key or secret."""

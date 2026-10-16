@@ -1,0 +1,3 @@
+[console_scripts]
+mattr-docs = quran_transcript.phonetics.generate_moshaf_docs:main
+ph-ndx = quran_transcript.phonetics.search:create_phonemes_index

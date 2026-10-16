@@ -1,0 +1,14 @@
+levenshtein>=0.27.1
+pydantic>=2.12.5
+xmltodict
+numpy>=2.2.6
+fuzzysearch>=0.8.1
+
+[:python_version < "3.11"]
+typing_extensions>=4.0.0
+
+[profile]
+pyinstrument>=5.1.2
+
+[test]
+pytest

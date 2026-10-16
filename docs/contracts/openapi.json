@@ -50,6 +50,24 @@
         "title": "AyahTiming",
         "type": "object"
       },
+      "EngineInfo": {
+        "properties": {
+          "quran_transcript": {
+            "title": "Quran Transcript",
+            "type": "string"
+          },
+          "rules": {
+            "title": "Rules",
+            "type": "string"
+          }
+        },
+        "required": [
+          "quran_transcript",
+          "rules"
+        ],
+        "title": "EngineInfo",
+        "type": "object"
+      },
       "ErrorPayload": {
         "description": "The body of an error response.",
         "properties": {
@@ -124,6 +142,166 @@
           "environment"
         ],
         "title": "Health",
+        "type": "object"
+      },
+      "Limits": {
+        "properties": {
+          "max_ayat_manual": {
+            "description": "Most ayat a reciter may choose in manual mode.",
+            "title": "Max Ayat Manual",
+            "type": "integer"
+          },
+          "max_recording_seconds": {
+            "title": "Max Recording Seconds",
+            "type": "integer"
+          },
+          "max_upload_bytes": {
+            "title": "Max Upload Bytes",
+            "type": "integer"
+          },
+          "soft_recording_seconds": {
+            "description": "Past this the result carries a warning.",
+            "title": "Soft Recording Seconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "max_recording_seconds",
+          "soft_recording_seconds",
+          "max_upload_bytes",
+          "max_ayat_manual"
+        ],
+        "title": "Limits",
+        "type": "object"
+      },
+      "Meta": {
+        "description": "Everything the app needs before the first request: settings, surahs, limits.",
+        "properties": {
+          "engine": {
+            "$ref": "#/components/schemas/EngineInfo"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/Limits"
+          },
+          "practices": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "description": "Optional practices, off by default (raum).",
+            "title": "Practices",
+            "type": "object"
+          },
+          "reading": {
+            "items": {
+              "$ref": "#/components/schemas/ReadingSetting"
+            },
+            "title": "Reading",
+            "type": "array"
+          },
+          "surahs": {
+            "items": {
+              "$ref": "#/components/schemas/SurahInfo"
+            },
+            "title": "Surahs",
+            "type": "array"
+          },
+          "tajweed_classes": {
+            "items": {
+              "enum": [
+                "madd6",
+                "wajib",
+                "jaiz",
+                "ghunnah",
+                "qalqalah",
+                "tafkheem",
+                "silent"
+              ],
+              "type": "string"
+            },
+            "title": "Tajweed Classes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "reading",
+          "practices",
+          "surahs",
+          "limits",
+          "tajweed_classes",
+          "engine"
+        ],
+        "title": "Meta",
+        "type": "object"
+      },
+      "ReadingChoice": {
+        "description": "One allowed value of a reading setting.",
+        "properties": {
+          "label_ar": {
+            "title": "Label Ar",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "value",
+          "label_ar"
+        ],
+        "title": "ReadingChoice",
+        "type": "object"
+      },
+      "ReadingSetting": {
+        "description": "A reading setting the reciter may change (the rules table decides the choices).",
+        "properties": {
+          "choices": {
+            "items": {
+              "$ref": "#/components/schemas/ReadingChoice"
+            },
+            "title": "Choices",
+            "type": "array"
+          },
+          "default": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Default"
+          },
+          "label_ar": {
+            "title": "Label Ar",
+            "type": "string"
+          },
+          "main": {
+            "description": "Shown first; the rest go under 'more reading choices'.",
+            "title": "Main",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "label_ar",
+          "choices",
+          "default",
+          "main"
+        ],
+        "title": "ReadingSetting",
         "type": "object"
       },
       "Ready": {
@@ -228,6 +406,230 @@
           "ayat"
         ],
         "title": "ReciterTimings",
+        "type": "object"
+      },
+      "Reference": {
+        "description": "The text to show, with tajweed colours. Positions index into `uthmani`.",
+        "properties": {
+          "classes_present": {
+            "items": {
+              "enum": [
+                "madd6",
+                "wajib",
+                "jaiz",
+                "ghunnah",
+                "qalqalah",
+                "tafkheem",
+                "silent"
+              ],
+              "type": "string"
+            },
+            "title": "Classes Present",
+            "type": "array"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/ReferenceSegment"
+            },
+            "title": "Segments",
+            "type": "array"
+          },
+          "tajweed": {
+            "description": "[start, end, class] spans.",
+            "items": {
+              "maxItems": 3,
+              "minItems": 3,
+              "prefixItems": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "enum": [
+                    "madd6",
+                    "wajib",
+                    "jaiz",
+                    "ghunnah",
+                    "qalqalah",
+                    "tafkheem",
+                    "silent"
+                  ],
+                  "type": "string"
+                }
+              ],
+              "type": "array"
+            },
+            "title": "Tajweed",
+            "type": "array"
+          },
+          "uthmani": {
+            "title": "Uthmani",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uthmani",
+          "segments",
+          "tajweed",
+          "classes_present"
+        ],
+        "title": "Reference",
+        "type": "object"
+      },
+      "ReferenceRequest": {
+        "description": "Whole ayat `aya_start`..`aya_end` of `sura`, with openings and reading settings.",
+        "properties": {
+          "aya_end": {
+            "minimum": 1.0,
+            "title": "Aya End",
+            "type": "integer"
+          },
+          "aya_start": {
+            "minimum": 1.0,
+            "title": "Aya Start",
+            "type": "integer"
+          },
+          "prefixes": {
+            "items": {
+              "enum": [
+                "istiaatha",
+                "basmala"
+              ],
+              "type": "string"
+            },
+            "title": "Prefixes",
+            "type": "array"
+          },
+          "reading": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Reading settings by name; unknown names are ignored.",
+            "title": "Reading",
+            "type": "object"
+          },
+          "sura": {
+            "maximum": 114.0,
+            "minimum": 1.0,
+            "title": "Sura",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sura",
+          "aya_start",
+          "aya_end"
+        ],
+        "title": "ReferenceRequest",
+        "type": "object"
+      },
+      "ReferenceSegment": {
+        "description": "A stretch read without stopping, or an opening (no words).",
+        "properties": {
+          "end": {
+            "title": "End",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "istiaatha",
+              "basmala",
+              "recitation"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "start": {
+            "title": "Start",
+            "type": "integer"
+          },
+          "words": {
+            "items": {
+              "$ref": "#/components/schemas/ReferenceWord"
+            },
+            "title": "Words",
+            "type": "array"
+          }
+        },
+        "required": [
+          "kind",
+          "start",
+          "end",
+          "words"
+        ],
+        "title": "ReferenceSegment",
+        "type": "object"
+      },
+      "ReferenceWord": {
+        "description": "A word, its place in the Quran and its character span in `uthmani` (end exclusive).",
+        "properties": {
+          "aya": {
+            "title": "Aya",
+            "type": "integer"
+          },
+          "ayah_last": {
+            "title": "Ayah Last",
+            "type": "boolean"
+          },
+          "end": {
+            "title": "End",
+            "type": "integer"
+          },
+          "start": {
+            "title": "Start",
+            "type": "integer"
+          },
+          "sura": {
+            "title": "Sura",
+            "type": "integer"
+          },
+          "word": {
+            "description": "Index within the ayah's words; matches the reciter timings.",
+            "title": "Word",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sura",
+          "aya",
+          "word",
+          "start",
+          "end",
+          "ayah_last"
+        ],
+        "title": "ReferenceWord",
+        "type": "object"
+      },
+      "SurahInfo": {
+        "properties": {
+          "ayat": {
+            "title": "Ayat",
+            "type": "integer"
+          },
+          "index": {
+            "title": "Index",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "name",
+          "ayat"
+        ],
+        "title": "SurahInfo",
         "type": "object"
       }
     }
@@ -379,6 +781,112 @@
         "summary": "Readyz",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/v1/meta": {
+      "get": {
+        "description": "Reading settings (choices, defaults, Arabic labels), surahs, limits, tajweed classes.",
+        "operationId": "get_meta",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-install-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Install-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meta"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid API key"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          }
+        },
+        "summary": "Get Meta",
+        "tags": [
+          "text"
         ]
       }
     },
@@ -631,6 +1139,122 @@
         "summary": "Reciter Timings",
         "tags": [
           "reciters"
+        ]
+      }
+    },
+    "/v1/reference": {
+      "post": {
+        "description": "The Uthmani text of whole ayat, its words and tajweed spans, under the reading settings.\nIt is computed, not stored, hence POST with 200.",
+        "operationId": "post_reference",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-install-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Install-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferenceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reference"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid API key"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          }
+        },
+        "summary": "Post Reference",
+        "tags": [
+          "text"
         ]
       }
     }

@@ -1,5 +1,6 @@
 """The API application factory and lifespan."""
 
+import asyncio
 import logging
 from collections.abc import AsyncIterator, Callable
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
@@ -14,6 +15,7 @@ from app.db.session import dispose_engine
 from app.errors import register_exception_handlers
 from app.log_config import configure_logging
 from app.request_context import RequestIdMiddleware
+from app.services.text_service import warm_up
 
 logger = logging.getLogger("mojawid.main")
 
@@ -30,6 +32,7 @@ def build_lifespan(settings: Settings) -> Callable[[FastAPI], AbstractAsyncConte
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.settings = settings
         logger.info("Mojawid API starting", extra={"environment": settings.environment})
+        await asyncio.to_thread(warm_up)  # the Quran and its special places, before traffic
         try:
             yield
         finally:

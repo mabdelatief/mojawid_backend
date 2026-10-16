@@ -38,8 +38,21 @@ contract is `docs/contracts/api.md`; after changing a route, run
 .venv/bin/pytest tests -q            # also tests/db, against a throwaway `mojawid_test` database
 ```
 
-The DB tests skip, with a reason, when the dev Postgres isn't running. They rebuild
+The DB tests skip, with a reason, when the dev Postgres isn't running. `-m slow` runs the
+whole-Quran sweep (every ayah builds a consistent reference, about 25 s). They rebuild
 `mojawid_test` from the migrations once per run and roll each test back.
+
+## Goldens: the port against tajweed_ai
+
+`app/engine` is a port of tajweed_ai's `muaalem_lab`, and must keep its behaviour exactly.
+`tests/golden/references.json` holds the lab's own output for 216 text selections (every special
+boundary place, openings, other reading settings, and seeded random ranges);
+`tests/unit/engine/test_text_golden.py` checks the port against it. Regenerate only when the lab
+changes on purpose, running in the lab's environment:
+
+```
+uv run --project ../tajweed_ai python -m tools.golden.make_text_golden
+```
 
 ## Services
 

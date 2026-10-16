@@ -4,8 +4,8 @@ The contract between `mojawid_backend` and `mojawid_flutter`. The machine-readab
 `openapi.json` next to this file. A test fails if the running API drifts from it, so it changes
 only on purpose.
 
-**Status:** draft. Live in dev: health, reciters, timings. Everything under "Coming" is the
-agreed design (`docs/architecture.md`), and may change in detail until it's built.
+**Status:** draft. Live in dev: health, meta, reference text, reciters, timings. Everything under
+"Coming" is the agreed design (`docs/architecture.md`), and may change in detail until it's built.
 
 ## Conventions
 
@@ -27,16 +27,18 @@ agreed design (`docs/architecture.md`), and may change in detail until it's buil
   ```
   `code` is stable: **show your own Arabic text by code**, never `message`, which is English
   for developers. On a `429`, `Retry-After` gives the seconds to wait.
-- **Caching:** reciter responses carry `Cache-Control: public, max-age=3600`. Timings change
-  only when they're re-imported.
+- **Caching:** `/v1/meta` and the reciter responses carry `Cache-Control: public, max-age=3600`.
+  Timings change only when they're re-imported. `/v1/reference` is computed per request (fast;
+  cache it on the device per selection + settings if you like).
 
 ### Error codes
 
 | Status | Code | Meaning |
 |---|---|---|
 | 400 | `missing_install_id`, `invalid_install_id` | `X-Install-Id` absent or not a UUID |
-| 400 | `invalid_text_selection` | The surah/ayah range doesn't exist |
-| 400 | `too_many_ayat` | Over the per-request ayah limit |
+| 400 | `invalid_text_selection` | The surah/ayah range doesn't exist, or runs backwards |
+| 400 | `too_many_ayat` | Over the per-request ayah limit (reference: `limits.max_ayat_manual`, 6; timings: 20) |
+| 400 | `invalid_reading_settings` | A reading setting the rules don't allow (e.g. munfasil 2). `details` is empty; the allowed values are in `/v1/meta` |
 | 401 | `invalid_api_key` | `X-Api-Key` missing or wrong |
 | 404 | `not_found` | No such reciter (or route) |
 | 422 | `invalid_request` | A field is missing or malformed. `details` lists which fields, never the submitted values |
@@ -49,6 +51,65 @@ More codes come with analyses and reports (below).
 
 ### `GET /healthz` · `GET /readyz`
 Liveness and readiness. No headers needed.
+
+### `GET /v1/meta`
+Fetch once at start (it's cached for an hour): everything the app needs before the first
+request.
+
+| Field | What it is |
+|---|---|
+| `reading` | The reading settings a reciter may change: `name`, `label_ar`, `choices` (`value` + `label_ar`; madd lengths come labelled «٤ حركات», «حركتان»), `default`, and `main` (show first; the rest go under «خيارات قراءة أخرى»). Settings the teachers' rulings fix are not listed. Send any of them back as `reading` in `/v1/reference` (and, later, analyses), by `name` → `value` |
+| `practices` | Optional practices, all off by default: `{"raum": false}` («أتدرّب على الوقف بالرَّوم») |
+| `surahs` | 114 × `{index, name, ayat}` (Arabic names) |
+| `limits` | `max_recording_seconds` 60, `soft_recording_seconds` 30 (past this the result carries a warning), `max_upload_bytes` 2 MiB, `max_ayat_manual` 6 |
+| `tajweed_classes` | The 7 colour classes, strongest first: `madd6`, `wajib`, `jaiz`, `ghunnah`, `qalqalah`, `tafkheem`, `silent` (the design tokens maddLazim, maddWajib, maddJaiz, ikhfaGhunnah, qalqalah, raaTafkheem, idghamSilent) |
+| `engine` | `quran_transcript` and `rules` versions, for bug reports |
+
+### `POST /v1/reference`
+The text to show for whole ayat, with its words and tajweed colours. **Always take the Quran text
+from here**, never type it or fetch it elsewhere: the colours and the word boundaries must match
+what a recording is checked against.
+
+```json
+{"sura": 112, "aya_start": 1, "aya_end": 1, "prefixes": ["istiaatha"],
+ "reading": {"madd_monfasel_len": 5, "madd_mottasel_len": 5}}
+```
+
+- `aya_end - aya_start + 1` ≤ `limits.max_ayat_manual` (6). `prefixes`: any of `istiaatha`,
+  `basmala`, said in that order (in al-Fatiha the basmala is ayah 1, so it isn't added again).
+  `reading`: optional, by name; unknown names are ignored.
+
+The response, real output for that request:
+
+```json
+{
+  "uthmani": "أَعُوذُ بِٱللَّهِ مِنَ ٱلشَّيْطَانِ ٱلرَّجِيمِ قُلْ هُوَ ٱللَّهُ أَحَدٌ",
+  "segments": [
+    {"kind": "istiaatha", "start": 0, "end": 46, "words": []},
+    {"kind": "recitation", "start": 47, "end": 71, "words": [
+      {"sura": 112, "aya": 1, "word": 0, "start": 47, "end": 51, "ayah_last": false},
+      {"sura": 112, "aya": 1, "word": 1, "start": 52, "end": 56, "ayah_last": false},
+      {"sura": 112, "aya": 1, "word": 2, "start": 57, "end": 64, "ayah_last": false},
+      {"sura": 112, "aya": 1, "word": 3, "start": 65, "end": 71, "ayah_last": true}]}
+  ],
+  "tajweed": [[10, 12, "silent"], [23, 25, "silent"], [36, 38, "silent"], [38, 41, "tafkheem"],
+              [43, 44, "jaiz"], [57, 59, "silent"], [69, 71, "qalqalah"]],
+  "classes_present": ["jaiz", "qalqalah", "tafkheem", "silent"]
+}
+```
+
+- **Positions** are character offsets into `uthmani`, end exclusive.
+- **`segments`** are the stretches read without stopping: one per ayah by default, plus a split
+  wherever a reading setting says stop (e.g. `sakt_man_raq: "waqf"` splits 75:27). Openings come
+  first, with no words.
+- **`word`** is the word's index in its ayah, the same index as in the reciter timings. A tap on
+  a word plays it from `/v1/reciters/{slug}/timings` with no conversion.
+- **`ayah_last`** marks the last word of an ayah: put the ۝ marker after it.
+- **`tajweed`**: `[start, end, class]` spans, sorted and non-overlapping; uncoloured text has
+  none. Natural (2-count) madd stays plain, as in the printed Mushaf.
+- **`classes_present`**: the classes that occur, for dimming the rest of the legend.
+- **Colours and mistake marks never appear together** (product rule): «القراءة الصحيحة» shows
+  these spans, «ملاحظاتي» shows mistake marks only.
 
 ### `GET /v1/reciters`
 The reciters the app may offer. All of them have word-by-word timings.
@@ -89,9 +150,8 @@ request.
 ```
 
 **Playing a tapped word.** `segments` rows are `[first_word, last_word, start_ms, end_ms]`:
-1. **Word index:** the word's position in its ayah, 0-based. Words are the Uthmani text split
-   on spaces, the same words `/v1/reference` returns (coming), so a word there maps straight to
-   an index here.
+1. **Word index:** the word's position in its ayah, 0-based: the `word` of a word in
+   `/v1/reference`, unchanged.
 2. **Find the segment** with `first_word ≤ index ≤ last_word`, then play `audio_url` from
    `start_ms` to `end_ms`.
 3. **A merged span:** a segment covering several words (`first_word < last_word`). A tap on
@@ -105,8 +165,6 @@ request.
 
 | Endpoint | Phase | Purpose |
 |---|---|---|
-| `GET /v1/meta` | 3 | Reading settings (options, defaults, Arabic labels), surahs (name, ayah count), limits (60 s, 6 ayat in manual mode), tajweed classes |
-| `POST /v1/reference` | 3 | For a chosen surah + ayat + openings + reading settings: the Uthmani text, segments and words (sura, ayah, word index, character span), tajweed spans and which classes occur |
 | `POST /v1/warmup` | 6 | Call when the Record screen opens: wakes the analysis worker (cold start 15–40 s) while the user recites. Returns 202 at once |
 | `POST /v1/analyses` | 6 | **Body = the recorded audio file itself** (`Content-Type: audio/*`, ≤ 2 MiB, any common format incl. m4a). Fields go in the query: `client_id` (UUID per attempt), mode, text, openings, reading settings, raum. Returns the result. Idempotent on `client_id`: a resend returns the first result |
 | `GET /v1/analyses/{client_id}` | 6 | 200 result / 202 still running / 404. Ask this after a timeout, before re-uploading |

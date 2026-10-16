@@ -4,10 +4,11 @@ version = "0.1.0"
 description = "Backend for Mojawid, a free Quran recitation practice app"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
-# Shared by the API and the worker. quran-transcript (phase 3) must be the patched copy,
-# `quran-transcript==0.6.4+muaalem.1` from the vendored path (CLAUDE.md; enforced by the scan).
+# Shared by the API and the worker.
 dependencies = [
   "fastapi>=0.120",
+  # The patched copy in vendor/ (MUAALEM_PATCHES.md), never PyPI: it changes the expected reading.
+  "quran-transcript==0.6.4+muaalem.1",
   "pydantic>=2.12",
   "pydantic-settings>=2.11",
   "uvicorn[standard]>=0.38",
@@ -33,12 +34,15 @@ dev = [
 [tool.uv]
 package = false
 
+[tool.uv.sources]
+quran-transcript = { path = "vendor/quran-transcript" }
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"
 # `.claude/` holds the agent tooling (hooks, discipline scanner); it runs on the host python and
 # is not part of the service.
-extend-exclude = [".claude", ".cache"]
+extend-exclude = [".claude", ".cache", "vendor"]
 
 [tool.ruff.lint]
 select = [
@@ -92,12 +96,12 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 files = ["app", "tests"]
-exclude = ["^tools/", "^\\.claude/"]
+exclude = ["^tools/", "^\\.claude/", "^vendor/"]
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
 # Third-party packages that ship no type information.
-module = ["asyncpg.*"]
+module = ["asyncpg.*", "quran_transcript.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
@@ -105,3 +109,5 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 asyncio_default_test_loop_scope = "session"
 testpaths = ["tests"]
+markers = ["slow: whole-Quran sweeps; run with -m slow"]
+addopts = "-m 'not slow'"

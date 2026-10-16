@@ -3,9 +3,10 @@
 Approved with the user on 2026-10-15. This file is the decision record: what the backend is made
 of, why, and the order it's built in. Each phase updates the "Status" line below when it lands.
 
-**Status:** phases 1–2 done: API skeleton, dev compose, recitation tables + timings loaded;
-access layer (app key, install id, rate limiter), reciters and timings endpoints, contract
-draft (`docs/contracts/`).
+**Status:** phases 1–3 done: API skeleton, dev compose, recitation tables + timings loaded;
+access layer, reciters and timings; vendored patched quran-transcript, `app/engine/text` (ported,
+matching the lab on 216 text goldens), `/v1/meta` and `/v1/reference`. Contract:
+`docs/contracts/`.
 
 ## Context
 Mojawid needs a backend that gives the app:
