@@ -4,3 +4,5 @@ __pycache__/
 # build leftovers from installing the vendored package
 vendor/quran-transcript/build/
 *.egg-info/
+# secrets (reports bucket key, admin password hash, LAN address)
+.env

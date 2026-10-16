@@ -4,9 +4,8 @@ The contract between `mojawid_backend` and `mojawid_flutter`. The machine-readab
 `openapi.json` next to this file. A test fails if the running API drifts from it, so it changes
 only on purpose.
 
-**Status:** draft. Live in dev: health, meta, reference text, reciters, timings, warm-up and
-analyses. Everything under "Coming" is the agreed design (`docs/architecture.md`), and may change
-in detail until it's built.
+**Status:** draft. Live in dev: health, meta, reference text, reciters, timings, warm-up,
+analyses and bad-result reports.
 
 ## Conventions
 
@@ -39,10 +38,15 @@ in detail until it's built.
 | 400 | `missing_install_id`, `invalid_install_id` | `X-Install-Id` absent or not a UUID |
 | 400 | `invalid_text_selection` | The surah/ayah range doesn't exist, or runs backwards |
 | 400 | `too_many_ayat` | Over the per-request ayah limit (reference: `limits.max_ayat_manual`, 6; timings: 20) |
+| 400 | `consent_required` | A report without `consent: true` |
+| 400 | `audio_missing` | A report recording with an empty body |
 | 400 | `invalid_reading_settings` | A reading setting the rules don't allow (e.g. munfasil 2). `details` is empty; the allowed values are in `/v1/meta` |
 | 401 | `invalid_api_key` | `X-Api-Key` missing or wrong |
 | 404 | `not_found` | No such reciter (or route) |
 | 404 | `analysis_not_found` | No analysis with this `client_id` for this install (or it's over 24 h old) |
+| 404 | `report_not_found` | No such report for this install |
+| 409 | `report_audio_exists` | The report already has its recording |
+| 410 | `report_upload_expired` | The recording came over an hour after the report |
 | 409 | `analysis_in_progress` | This `client_id` is being analysed right now. Ask `GET /v1/analyses/{client_id}` |
 | 413 | `audio_too_large` | The recording is over 2 MiB |
 | 422 | `invalid_request` | A field is missing or malformed. `details` lists which fields, never the submitted values |
@@ -51,9 +55,10 @@ in detail until it's built.
 | 500 | `internal_error` | Our bug. Retry later |
 | 503 | `analysis_unavailable` | The analysis service didn't come up in time. Send it again shortly (same `client_id`) |
 | 503 | `analysis_busy` | Today's analyses for the whole service are used up. Wait `Retry-After` seconds |
+| 503 | `reports_unavailable` | Reports can't be received right now. Try again later |
 | 504 | `analysis_timeout` | The analysis took too long. Ask `GET /v1/analyses/{client_id}` before sending again |
 
-More codes come with reports (below).
+
 
 ## Live now
 
@@ -263,8 +268,36 @@ Top-level fields:
 - **`warnings`:** `[{code, edges, message_ar}]`, with `code` either `cut_in_speech` (`edges`:
   `start` and/or `end`) or `over_30s`.
 
-## Coming (agreed design, not built yet)
+### `POST /v1/reports` · `PUT /v1/reports/{id}/audio`
+The «نتيجة غير صحيحة؟» flow. Send it **only after the user ticked the consent box**.
+1. `POST /v1/reports` with a JSON body (≤ 2 MiB). It returns
+   `201 {"id", "upload_audio_until"}`:
 
-| Endpoint | Phase | Purpose |
-|---|---|---|
-| `POST /v1/reports` + `PUT /v1/reports/{id}/audio` | 7 | Bad-result report. Only with the user's explicit consent (`consent: true`); category, word, note, the result shown, reading settings |
+   | Field | Notes |
+   |---|---|
+   | `consent` | **Required, must be `true`** |
+   | `category` | `false_mistake` «أشار إلى خطأ لم أقع فيه», `missed_mistake` «لم يلاحظ خطأً وقعت فيه», `wrong_ayat` «تعرّف على آيات غير التي قرأتها», `other` «شيء آخر», or null |
+   | `word` | `{sura, aya, word}` (word index within the ayah) or null; filled in from «لم أخطئ هنا؟ أبلغنا» |
+   | `note` | Up to 1,000 characters, or null |
+   | `analysis_client_id` | The `client_id` of the analysis reported, when there is one |
+   | `result` | **Required.** The result the user saw, exactly as `/v1/analyses` returned it |
+   | `reading` | The reading settings used |
+   | `app_version` | The app's version |
+
+2. `PUT /v1/reports/{id}/audio`: the recording as the raw body (≤ 2 MiB, `Content-Type` set to
+   its audio type). It returns `204`. The rules:
+   - only from the same install;
+   - only once;
+   - before `upload_audio_until`, an hour after the report.
+
+- **Limits:** 10 reports a day per install, 30 per network.
+- **Privacy:**
+  - the recording goes into a private bucket;
+  - it's deleted the moment the report is reviewed;
+  - the rest of the report is deleted 30 days after review;
+  - a report whose recording never arrives is deleted after an hour.
+
+## Coming
+
+Nothing else is planned for the app's API before production. The admin page (`/admin`) isn't
+part of this contract.

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Report{% endblock %}
+{% block body %}{% set r = report %}
+<p><a href="/admin">← All reports</a></p>
+<h1>Report {{ r.created_at.strftime("%Y-%m-%d %H:%M") }}
+  {% if r.reviewed_at %}<span class="tag">reviewed {{ r.reviewed_at.strftime("%Y-%m-%d") }}</span>{% else %}<span class="tag open">open</span>{% endif %}</h1>
+
+<div class="box"><dl>
+  <dt>Category</dt><dd>{{ category }}</dd>
+  <dt>Text</dt><dd>{{ text }}</dd>
+  <dt>Word</dt><dd>{{ word }}</dd>
+  <dt>Note</dt><dd dir="auto">{{ r.note or "—" }}</dd>
+  <dt>Summary</dt><dd>{{ summary.mistakes | default("?") }} counted, {{ summary.uncertain | default("?") }} uncertain{% if summary.exact_match %}, exact match{% endif %}</dd>
+  <dt>Platform</dt><dd>{{ r.platform }}{% if r.app_version %} · app {{ r.app_version }}{% endif %}</dd>
+  <dt>Analysis id</dt><dd class="muted">{{ r.analysis_client_id or "—" }}</dd>
+</dl></div>
+
+<div class="box">
+  <strong>Recording</strong>
+  {% if audio_url %}
+    <span class="muted">({{ (r.audio_size / 1024) | round(1) }} KiB, {{ r.audio_content_type }})</span>
+    <audio controls preload="none" src="{{ audio_url }}"></audio>
+  {% elif r.reviewed_at %}<p class="muted">Deleted at review.</p>
+  {% else %}<p class="muted">Not sent.</p>{% endif %}
+</div>
+
+<div class="box">
+  {% if not r.reviewed_at %}
+  <form method="post" action="/admin/reports/{{ r.id }}/reviewed">
+    <input type="hidden" name="csrf" value="{{ csrf_reviewed }}">
+    <button class="primary" type="submit">Mark reviewed (deletes the recording)</button>
+  </form>
+  {% endif %}
+  <form method="post" action="/admin/reports/{{ r.id }}/delete"
+        onsubmit="return confirm('Delete this report and its recording now?')">
+    <input type="hidden" name="csrf" value="{{ csrf_delete }}">
+    <button class="danger" type="submit">Delete report</button>
+  </form>
+</div>
+
+<h2>Counted mistakes in the result shown</h2>
+<div class="scroll"><table>
+  <tr><th>Place</th><th>Text</th><th>Kind</th><th>Expected</th><th>Heard</th></tr>
+  {% for e in mistakes %}
+  <tr>
+    <td>{{ e.sura }}:{{ e.aya }} w{{ e.word }}</td>
+    <td class="ar" dir="rtl">{{ e.uthmani_text }}</td>
+    <td>{{ e.mark }}{% if e.ghunnah %} · ghunnah {{ e.ghunnah }}{% endif %}</td>
+    <td class="ar" dir="rtl">{{ e.expected_text }}</td>
+    <td class="ar" dir="rtl">{{ e.heard_text }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="5" class="muted">None counted.</td></tr>
+  {% endfor %}
+</table></div>
+
+<h2>Reading settings</h2>
+<div class="scroll"><table>
+  {% for name, value in reading %}<tr><td>{{ name }}</td><td>{{ value }}</td></tr>
+  {% else %}<tr><td class="muted">Defaults.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

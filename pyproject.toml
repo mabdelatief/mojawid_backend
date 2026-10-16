@@ -18,8 +18,11 @@ dependencies = [
 # The public API. Never torch: the worker extra is the only one that brings the model stack.
 api = [
   "alembic>=1.17",
+  "argon2-cffi>=25.1",
   "asyncpg>=0.30",
+  "boto3>=1.40",
   "httpx>=0.28",
+  "jinja2>=3.1",
   "sqlalchemy[asyncio]>=2.0.44",
 ]
 # The analysis worker: the model stack, pinned like tajweed_ai's (the reference). transformers 5
@@ -117,7 +120,7 @@ plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
 # Third-party packages that ship no type information.
-module = ["asyncpg.*", "quran_transcript.*", "quran_muaalem.*", "diff_match_patch.*", "Levenshtein.*"]
+module = ["asyncpg.*", "boto3.*", "botocore.*", "quran_transcript.*", "quran_muaalem.*", "diff_match_patch.*", "Levenshtein.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
@@ -135,5 +138,6 @@ testpaths = ["tests"]
 markers = [
   "slow: whole-Quran sweeps; run with -m slow",
   "gpu: the real models on the GPU; run with -m gpu",
+  "bucket: the real private reports bucket (needs .env); run with -m bucket",
 ]
-addopts = "-m 'not slow and not gpu'"
+addopts = "-m 'not slow and not gpu and not bucket'"

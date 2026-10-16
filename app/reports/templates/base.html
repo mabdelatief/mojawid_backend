@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Reports{% endblock %} · Mojawid admin</title>
+  <style>
+    :root { --ink: #1d2421; --soft: #5d6a64; --rule: #dcd8cc; --paper: #f6f4ee; --frame: #2f6f5e;
+            --warn: #a1461a; color-scheme: light dark; }
+    @media (prefers-color-scheme: dark) {
+      :root { --ink: #e4ebe7; --soft: #9aa8a2; --rule: #2c3833; --paper: #111614; --frame: #7fb5a4; --warn: #f0a27a; }
+    }
+    body { margin: 0; background: var(--paper); color: var(--ink);
+           font: 15px/1.6 "Noto Sans", "Noto Sans Arabic", system-ui, sans-serif; }
+    main { max-width: 960px; margin: 0 auto; padding: 16px; }
+    a { color: var(--frame); }
+    h1 { font-size: 1.2rem; color: var(--frame); }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: start; padding: 6px 8px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+    th { color: var(--soft); font-weight: 600; font-size: .85rem; }
+    .ar { font-family: "Amiri", "Noto Naskh Arabic", serif; font-size: 1.15rem; }
+    .muted { color: var(--soft); }
+    .tag { font-size: .8rem; border: 1px solid var(--rule); border-radius: 999px; padding: 0 8px; }
+    .tag.open { border-color: var(--warn); color: var(--warn); }
+    form { display: inline; }
+    button { font: inherit; padding: 6px 14px; border-radius: 8px; border: 1px solid var(--rule);
+             background: var(--paper); color: var(--ink); cursor: pointer; }
+    button.primary { background: var(--frame); border-color: var(--frame); color: var(--paper); }
+    button.danger { border-color: var(--warn); color: var(--warn); }
+    .box { border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; margin: 12px 0; }
+    dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; }
+    dt { color: var(--soft); }
+    dd { margin: 0; }
+    audio { width: 100%; margin-top: 8px; }
+    .scroll { overflow-x: auto; }
+  </style>
+</head>
+<body><main>{% block body %}{% endblock %}</main></body>
+</html>

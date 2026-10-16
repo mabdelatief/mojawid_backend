@@ -83,6 +83,26 @@ class Settings(BaseSettings):
     warmups_per_ip_hour: int = 60
     purge_interval_s: int = 3600
 
+    # --- Bad-result reports (the only audio ever stored, with consent) ---
+    # A private Linode bucket with its own key, limited to it. Unset: reports answer 503.
+    reports_bucket: str = ""
+    reports_endpoint: str = "https://eu-central-1.linodeobjects.com"
+    reports_region: str = "eu-central-1"
+    reports_access_key: str = ""
+    reports_secret_key: str = ""
+    report_upload_window_s: int = 3600  # the audio must follow the report within this time
+    report_keep_after_review_days: int = 30  # the rest of a report, after its audio is deleted
+    reports_per_install_day: int = 10
+    reports_per_ip_day: int = 30
+    # The admin page (/admin): HTTP Basic against an argon2 hash
+    # (`python -m app.reports.hash_password`). No hash: the page doesn't exist.
+    admin_user: str = "admin"
+    admin_password_hash: str = ""
+
+    @property
+    def reports_configured(self) -> bool:
+        return bool(self.reports_bucket and self.reports_access_key and self.reports_secret_key)
+
     @model_validator(mode="after")
     def _production_secrets(self) -> "Settings":
         """Refuse to start in production with a dev key or secret."""

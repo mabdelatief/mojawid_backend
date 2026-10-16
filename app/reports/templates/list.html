@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Bad-result reports</h1>
+<p class="muted">The recording is deleted the moment a report is marked reviewed; the rest goes
+after the keep period. Reports whose recording never arrived are removed after an hour.</p>
+<div class="scroll"><table>
+  <tr><th>Sent</th><th>Category</th><th>Text</th><th>Word</th><th>Platform</th><th>Recording</th><th>State</th></tr>
+  {% for row in rows %}{% set r = row.report %}
+  <tr>
+    <td><a href="/admin/reports/{{ r.id }}">{{ r.created_at.strftime("%Y-%m-%d %H:%M") }}</a></td>
+    <td>{{ row.category }}</td>
+    <td>{{ row.text }}</td>
+    <td>{{ row.word }}</td>
+    <td>{{ r.platform }}</td>
+    <td>{% if r.audio_key %}yes{% elif r.reviewed_at %}deleted{% else %}<span class="muted">not sent</span>{% endif %}</td>
+    <td>{% if r.reviewed_at %}<span class="tag">reviewed</span>{% else %}<span class="tag open">open</span>{% endif %}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="7" class="muted">No reports.</td></tr>
+  {% endfor %}
+</table></div>
+{% endblock %}

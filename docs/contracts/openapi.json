@@ -775,6 +775,27 @@
         "title": "ReferenceWord",
         "type": "object"
       },
+      "ReportCreated": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "upload_audio_until": {
+            "description": "Send the recording with PUT /v1/reports/{id}/audio before this time.",
+            "format": "date-time",
+            "title": "Upload Audio Until",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "upload_audio_until"
+        ],
+        "title": "ReportCreated",
+        "type": "object"
+      },
       "Summary": {
         "properties": {
           "exact_match": {
@@ -1898,6 +1919,351 @@
         "summary": "Post Reference",
         "tags": [
           "text"
+        ]
+      }
+    },
+    "/v1/reports": {
+      "post": {
+        "description": "A bad-result report. Only with the user's explicit agreement (`consent: true`); send\nits recording next, with PUT /v1/reports/{id}/audio.",
+        "operationId": "post_report",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-install-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Install-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$defs": {
+                  "ReportWord": {
+                    "description": "The word the user points at, indexed within its ayah as everywhere else.",
+                    "properties": {
+                      "aya": {
+                        "minimum": 1,
+                        "title": "Aya",
+                        "type": "integer"
+                      },
+                      "sura": {
+                        "maximum": 114,
+                        "minimum": 1,
+                        "title": "Sura",
+                        "type": "integer"
+                      },
+                      "word": {
+                        "minimum": 0,
+                        "title": "Word",
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "sura",
+                      "aya",
+                      "word"
+                    ],
+                    "title": "ReportWord",
+                    "type": "object"
+                  }
+                },
+                "description": "POST /v1/reports. Only with the user's explicit agreement (`consent: true`).",
+                "properties": {
+                  "analysis_client_id": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "The client_id of the analysis reported, when there is one.",
+                    "title": "Analysis Client Id"
+                  },
+                  "app_version": {
+                    "anyOf": [
+                      {
+                        "maxLength": 40,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "App Version"
+                  },
+                  "category": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "false_mistake",
+                          "missed_mistake",
+                          "wrong_ayat",
+                          "other"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "false_mistake «أشار إلى خطأ لم أقع فيه», missed_mistake «لم يلاحظ خطأً وقعت فيه», wrong_ayat «تعرّف على آيات غير التي قرأتها», other «شيء آخر».",
+                    "title": "Category"
+                  },
+                  "consent": {
+                    "description": "The user ticked the consent box; must be true.",
+                    "title": "Consent",
+                    "type": "boolean"
+                  },
+                  "note": {
+                    "anyOf": [
+                      {
+                        "maxLength": 1000,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Note"
+                  },
+                  "reading": {
+                    "additionalProperties": true,
+                    "description": "The reading settings.",
+                    "title": "Reading",
+                    "type": "object"
+                  },
+                  "result": {
+                    "additionalProperties": true,
+                    "description": "The result the user was shown, as received.",
+                    "title": "Result",
+                    "type": "object"
+                  },
+                  "word": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/ReportWord"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "consent",
+                  "result"
+                ],
+                "title": "ReportCreate",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportCreated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid API key"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          }
+        },
+        "summary": "Post Report",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/v1/reports/{report_id}/audio": {
+      "put": {
+        "description": "The report's recording as the raw body (≤ 2 MiB): once, within an hour of the report.",
+        "operationId": "put_report_audio",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Report Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-install-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Install-Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid API key"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          }
+        },
+        "summary": "Put Report Audio",
+        "tags": [
+          "reports"
         ]
       }
     },

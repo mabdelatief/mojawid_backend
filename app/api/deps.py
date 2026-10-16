@@ -6,6 +6,7 @@ from fastapi import Depends, Header, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.access.client import Client, identify
+from app.adapters.object_store import ObjectStore
 from app.adapters.worker_client import WorkerClient
 from app.config import Settings, get_settings
 from app.db.session import get_db_session
@@ -36,3 +37,12 @@ def get_worker(request: Request) -> WorkerClient:
 
 
 WorkerDep = Annotated[WorkerClient, Depends(get_worker)]
+
+
+def get_object_store(request: Request) -> ObjectStore | None:
+    """The reports bucket, or None when it isn't configured (tests override this)."""
+    store: ObjectStore | None = request.app.state.object_store
+    return store
+
+
+ObjectStoreDep = Annotated[ObjectStore | None, Depends(get_object_store)]

@@ -8,6 +8,8 @@ from app.api.routes.reciters import router as reciters_router
 from app.api.routes.text import router as text_router
 from app.api.routes.warmup import router as warmup_router
 from app.errors import ERROR_RESPONSES
+from app.reports.admin_routes import router as admin_router
+from app.reports.routes import router as reports_router
 
 api_router = APIRouter(responses=ERROR_RESPONSES)
 api_router.include_router(health_router)
@@ -15,3 +17,5 @@ api_router.include_router(reciters_router)
 api_router.include_router(text_router)
 api_router.include_router(analyses_router)
 api_router.include_router(warmup_router)
+api_router.include_router(reports_router)
+api_router.include_router(admin_router)

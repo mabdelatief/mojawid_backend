@@ -15,7 +15,10 @@ async def main() -> None:
     try:
         async with get_session_maker(settings)() as session:
             purged = await MaintenanceService(session, settings).purge()
-        print(f"purged {purged.analyses} analyses, {purged.counters} rate-limit counters")
+        print(
+            f"purged {purged.analyses} analyses, {purged.counters} rate-limit counters, "
+            f"{purged.reports} reports"
+        )
     finally:
         await dispose_engine()
 

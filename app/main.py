@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 
+from app.adapters.object_store import object_store_for
 from app.adapters.worker_client import WorkerClient
 from app.api.router import api_router
 from app.config import Settings, get_settings
@@ -36,6 +37,7 @@ def build_lifespan(settings: Settings) -> Callable[[FastAPI], AbstractAsyncConte
         logger.info("Mojawid API starting", extra={"environment": settings.environment})
         await asyncio.to_thread(warm_up)  # the Quran and its special places, before traffic
         app.state.worker = WorkerClient.from_settings(settings)
+        app.state.object_store = object_store_for(settings)
         purge = asyncio.create_task(purge_forever(get_session_maker(settings), settings))
         try:
             yield

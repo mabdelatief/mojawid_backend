@@ -3,7 +3,7 @@
 Approved with the user on 2026-10-15. This file is the decision record: what the backend is made
 of, why, and the order it's built in. Each phase updates the "Status" line below when it lands.
 
-**Status:** phases 1–6 done: API skeleton, dev compose, recitation tables + timings loaded;
+**Status:** phases 1–7 done: API skeleton, dev compose, recitation tables + timings loaded;
 access layer, reciters and timings; `app/engine/text` with `/v1/meta` and `/v1/reference` (216
 text goldens match the lab); `app/engine/pipeline` (on the lab's own model outputs it gives
 exactly the lab's result on 22 Husary cases) with the new fields; the worker (`app/worker/`) on
@@ -12,7 +12,9 @@ lab's results on all 22 cases (0.12–0.65 s a request); analyses end to end: `P
 (idempotent on install + `client_id` for 24 h), `GET /v1/analyses/{client_id}`, `POST
 /v1/warmup`, the worker client with retries while the worker starts, the limits and a daily GPU
 budget (default 5,000 analyses for everyone, `MOJAWID_ANALYSES_PER_DAY_TOTAL`), and the hourly
-purge. Contract: `docs/contracts/`.
+purge; bad-result reports into the private bucket `mojawid-reports` (its own key, limited to
+it) and the admin page at `/admin` (HTTP Basic, argon2) where «reviewed» deletes the recording.
+Contract: `docs/contracts/`.
 
 ## Context
 Mojawid needs a backend that gives the app:

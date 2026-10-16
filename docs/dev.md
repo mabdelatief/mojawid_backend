@@ -119,3 +119,23 @@ Object Storage; it's set up in that phase.
 Use `/new-migration`. In short: change the model in `app/db/models/`, then run `.venv/bin/alembic
 revision --autogenerate --rev-id <YYYYMMDD_NNNN> -m "<change>"`, review the file, and run
 `upgrade head` + `alembic check`. A migration that's on `origin/main` is never edited.
+
+## Reports and the admin page
+
+Reports go to the private bucket `mojawid-reports`. Its key, limited to that bucket, is in
+`.env` (git-ignored, mode 600) as `MOJAWID_REPORTS_*`. Without it, reports answer 503
+`reports_unavailable`.
+
+The admin page is `/admin`. Set it up once:
+
+```
+.venv/bin/python -m app.reports.hash_password      # asks for the password twice, prints the hash
+echo "MOJAWID_ADMIN_PASSWORD_HASH='<the hash>'" >> .env
+```
+
+The user is `admin` (`MOJAWID_ADMIN_USER`). With no hash set, the page doesn't exist (404). It
+lists the reports and plays each recording through a 5-minute signed link. «Mark reviewed»
+deletes the recording at once; the row goes 30 days later.
+
+`.venv/bin/pytest -m bucket tests/integration -q` checks the real bucket: put, play, private,
+delete.
