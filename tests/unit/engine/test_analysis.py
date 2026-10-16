@@ -109,10 +109,10 @@ def test_meem_form_is_a_valid_variant() -> None:
 
 @pytest.mark.parametrize(("heard_len", "ok"), [(5, True), (3, False), (2, False)])
 def test_munfasil_at_another_allowed_length_is_a_valid_variant(heard_len: int, ok: bool) -> None:
-    ref = ref_of(2, 4)  # «بِمَآ أُنزِلَ»: munfasil 4 by default
+    ref = ref_of(2, 4)  # «بِمَآ أُنزِلَ» and «وَمَآ أُنزِلَ»: munfasil 4 by default
     ph = ref.phonetic.phonemes
-    assert "ااااءُ" in ph
-    heard = ph.replace("ااااءُ", "ا" * heard_len + "ءُ", 1)
+    assert ph.count("ااااءُ") == 2
+    heard = ph.replace("ااااءُ", "ا" * heard_len + "ءُ")  # both places: one length throughout
     rows = [
         r
         for r in analyze(heard_as(heard), ref)["errors"]
@@ -186,9 +186,9 @@ def test_a_near_coin_flip_is_uncertain_not_a_mistake() -> None:
 
 
 def test_a_valid_variant_is_never_uncertain() -> None:
-    ref = ref_of(2, 4)  # بِمَآ أُنزِلَ: munfasil, set to 4
+    ref = ref_of(2, 4)  # بِمَآ أُنزِلَ، وَمَآ أُنزِلَ: munfasil, set to 4
     ph = ref.phonetic.phonemes
-    heard = ph.replace("اااا", "ااااا", 1)  # read at 5: allowed
+    heard = ph.replace("ااااءُ", "اااااءُ")  # both read at 5: allowed
     vocab = ["[PAD]", *sorted(set(ph))]
     report = analyze(heard_as(heard, _probs_for(heard, vocab, {}), vocab), ref)
     variants = [r for r in report["errors"] if r["valid_variant"]]

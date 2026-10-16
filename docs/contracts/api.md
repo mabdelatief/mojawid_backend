@@ -248,6 +248,10 @@ Top-level fields:
   - `mark`, what to draw: `letter` (most serious), `haraka`, `tajweed`, `uncertain` (dotted «؟»),
     or for something that isn't a mistake, `variant` (an allowed way, shown dimmed with its
     reason) or `false_alarm`.
+  - `consistency_ar` (optional, added 2026-10-16): set when a madd length that would be allowed
+    on its own is a mistake across the recitation. Either the munfasil and muttasil lengths aren't
+    an allowed pair (4/4, 5/5, 4/5), a kind of madd isn't one length throughout (taswiya), or a
+    leen is longer than the 'arid. It holds the reason in Arabic; show it with the mistake.
   - `counted`: true only for `letter`, `haraka` and `tajweed`. Uncertain places and allowed
     variants are never counted, and never "worse" between attempts.
   - `expected_harakat` / `heard_harakat`: madd rows only, in harakat. Null for ghunnah, which is

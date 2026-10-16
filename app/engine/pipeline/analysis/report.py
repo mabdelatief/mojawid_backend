@@ -9,6 +9,7 @@ dropped.
 import dataclasses
 from typing import Any
 
+from app.engine.pipeline.analysis.madd_consistency import apply_madd_consistency
 from app.engine.pipeline.analysis.marks import mark_doubt, mark_raum
 from app.engine.pipeline.analysis.missed import rows_explain_error_missed
 from app.engine.pipeline.analysis.rows import error_row
@@ -40,6 +41,7 @@ def analyze(heard: Heard, ref: Reference, raum_practice: bool = False) -> dict[s
     if raum_practice:
         mark_raum(errors, rows, ref)
     rows += rows_explain_error_missed(ref, predicted, rows)
+    apply_madd_consistency(rows, ref)
     diff = phoneme_diff(ref_ph, predicted)
     mark_doubt(rows, diff, heard)
     shown = [r for r in rows if not r["likely_false_alarm"]]  # mistakes and uncertain places

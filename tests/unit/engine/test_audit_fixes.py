@@ -77,3 +77,28 @@ def test_an_insertion_touching_a_row_is_not_part_of_it() -> None:
     assert not overlaps(3, 5, 3, 3)  # at its start
     assert overlaps(5, 5, 5, 5)  # an insertion row matches an insertion block at its point
     assert overlaps(3, 5, 4, 7)
+
+
+def _madd_rows(sura: int, aya: int, edit: Any) -> list[dict[str, Any]]:
+    ref = ref_for(sura, aya)
+    rs = rows(ref, edit(ref.phonetic.phonemes))
+    return [r for r in rs if any(x["en"] in ("Monfasel Madd", "Mottasel Madd") for x in r["rules"])]
+
+
+def test_munfasil_5_with_muttasil_4_is_a_mistake() -> None:
+    # 2:19 has a munfasil («فِىٓ ءَاذَانِهِم») and a muttasil («ٱلسَّمَآءِ»); the setting is 4/4
+    rs = _madd_rows(2, 19, lambda ph: ph.replace("ۦۦۦۦء", "ۦۦۦۦۦء", 1))
+    assert rs and not rs[0]["likely_false_alarm"] and "لا يصح الجمع" in rs[0]["consistency_ar"]
+
+
+def test_munfasil_4_with_muttasil_5_is_allowed() -> None:
+    rs = _madd_rows(2, 19, lambda ph: ph.replace("سَمَااااء", "سَمَاااااء", 1))
+    assert rs and all(r["likely_false_alarm"] for r in rs)
+
+
+def test_mixed_munfasil_lengths_are_a_mistake() -> None:
+    # 2:4: two munfasil places; one read at 5, the other at the setting's 4 (taswiya)
+    rs = _madd_rows(2, 4, lambda ph: ph.replace("ااااءُ", "اااااءُ", 1))
+    assert (
+        rs and not rs[0]["likely_false_alarm"] and "يخالف بقية التلاوة" in rs[0]["consistency_ar"]
+    )

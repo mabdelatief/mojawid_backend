@@ -96,8 +96,16 @@ def ghunnah_state(e: Any, uthmani: str) -> str | None:
     return "missing" if heard == 0 else "short" if heard < want else "long"
 
 
-def _madd_variant(e: Any, rules: list[Any]) -> dict[str, str] | None:
-    allowed = RULES.DEFAULT.madd_lengths
+# the 'ayn of كهيعص / عسق: tagged "Leen Madd" by the phonetizer, but a lazim harfi, 4 or 6 via
+# al-Shatibiyya («وفي عين الوجهان والطول فضلا»), never leen's 2 (audit 2026-10-16, R8)
+AYN_HARFI = alph.uthmani.ayn + alph.uthmani.madd
+AYN_LENGTHS = (4, 6)
+
+
+def _madd_variant(e: Any, rules: list[Any], uthmani: str = "") -> dict[str, str] | None:
+    allowed = dict(RULES.DEFAULT.madd_lengths)
+    if AYN_HARFI in uthmani:
+        allowed["Leen Madd"] = AYN_LENGTHS
     if e.error_type != "tajweed" or e.predicted_len is None:
         return None
     for r in rules:
@@ -115,11 +123,11 @@ def _madd_variant(e: Any, rules: list[Any]) -> dict[str, str] | None:
     return None
 
 
-def valid_variant(e: Any, rules: list[Any]) -> dict[str, str] | None:
+def valid_variant(e: Any, rules: list[Any], uthmani: str = "") -> dict[str, str] | None:
     """A difference that is another correct way to read (the rules table), not a mistake: a madd
     at another allowed length, or the meem of iqlab / ikhfa shafawi read with the lips closed
     instead of a slight gap (or the reverse)."""
-    madd = _madd_variant(e, rules)
+    madd = _madd_variant(e, rules, uthmani)
     if madd:
         return madd
     exp, got = e.expected_ph, e.preditected_ph
@@ -169,7 +177,7 @@ def error_row(i: int, e: Any, ref: Reference, span: tuple[int, int]) -> Row:
         "missing_rules": rule_dicts(e.missing_tajweed_rules),
         "likely_false_alarm": is_false_alarm(e), "valid_variant": None, "ghunnah": ghunnah,
     }  # fmt: skip
-    variant = valid_variant(e, rules)
+    variant = valid_variant(e, rules, ref.uthmani[s:t])
     if variant and not row["likely_false_alarm"]:
         row.update(valid_variant=variant, likely_false_alarm=True)
     if ghunnah:

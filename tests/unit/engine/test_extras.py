@@ -106,7 +106,7 @@ def test_key_mark_and_place_of_a_letter_mistake() -> None:
 
 def test_allowed_madd_is_a_variant_and_not_counted() -> None:
     ref = build_reference(TextSelection(2, 4), MOSHAF)
-    rows = rows_for(ref, ref.phonetic.phonemes.replace("ااااءُ", "ا" * 5 + "ءُ", 1))
+    rows = rows_for(ref, ref.phonetic.phonemes.replace("ااااءُ", "ا" * 5 + "ءُ"))  # both: taswiya
     madd = [r for r in rows if any(x["en"] == "Monfasel Madd" for x in r["rules"])]
     assert madd
     assert madd[0]["mark"] == "variant"
