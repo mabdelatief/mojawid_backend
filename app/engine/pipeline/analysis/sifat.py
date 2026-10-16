@@ -10,9 +10,10 @@ correct at that letter (rules.both_valid: e.g. the raa of «مِصْرَ» at a 
 is marked allowed, so the app shows it as correct, the way allowed madd lengths are never counted.
 
 Fixed in Mojawid (user's decision, 2026-10-16): a row's tag follows what the main (phonemes)
-output heard on that stretch, not only the sifat outputs' letter groups. Those can split the
-letters differently from the phonemes output (one lam where it heard the doubled lam of «ٱللَّهُ»),
-and the lab then shows «حرف مختلف» on a letter read exactly as expected.
+output heard on that stretch, so a letter read exactly as expected isn't shown as «حرف مختلف».
+Known defect (audit 2026-10-16, docs/research/README.md C1): the cause is segment_groups'
+merge_same_phoneme_group, which can pair a letter with its neighbour (the lam of «ٱللَّهُ» with
+the lam before it); the attributes are then compared against the wrong letter. To be redone.
 """
 
 from typing import Any

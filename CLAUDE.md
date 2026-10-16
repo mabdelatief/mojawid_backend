@@ -17,6 +17,9 @@ in `docs/architecture.md`; follow it, and discuss before changing it.
 4. `docs/recitations.md`: the reciters offered, the audio bucket, where the word timings come
    from, and how they're stored.
 5. `docs/dev.md`: running it in dev, tests, migrations.
+6. `docs/research/README.md`: the 2026-10-16 audit of the model, the wrapper, the phonetizer and
+   our engine against the teacher's rulings and al-Shatibiyya. It holds the known defects and the
+   fix order. The app accepts exactly what Hafs via al-Shatibiyya allows.
 
 ## Rules
 

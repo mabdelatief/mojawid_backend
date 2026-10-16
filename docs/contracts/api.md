@@ -264,7 +264,9 @@ Top-level fields:
 - **Sifat rows:** each attribute has `allowed`. It's true where the attribute differs but the
   rules count both ways as correct (e.g. the raa of «مِصْرَ» at a stop); show it as correct.
   A row's `tag` follows what was heard on that letter: a letter heard exactly as expected is
-  `exact` even when the sifat outputs grouped it differently (2026-10-16).
+  `exact` (2026-10-16). Known defect: some rows pair a letter with its neighbour, and a perfect
+  recitation can still show a made-up tafkheem mismatch on the lam of «ٱللَّهُ». A fix is
+  planned (`docs/research/README.md`, C1).
 - **`warnings`:** `[{code, edges, message_ar}]`, with `code` either `cut_in_speech` (`edges`:
   `start` and/or `end`) or `over_30s`.
 

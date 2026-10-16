@@ -309,11 +309,16 @@ Alongside the report it returns `detection` (auto mode: candidates, `clear`, ope
     whose code is unchanged.
 - **Three more fixes over the lab** (user's decision, 2026-10-16). They were found on the user's
   recording of al-Najm 23 and are noted in tajweed_ai's project log, whose code is unchanged:
-  - **Sifat rows follow the phonemes output.** The sifat outputs can group letters differently
-    from the phonemes output. At «ٱللَّهُ» they counted one lam where the doubled lam was heard,
-    and the lab showed «حرف مختلف (الصواب لَّ)» on a letter read exactly as expected. Now a
-    `changed` or `delete` row whose stretch of the expected script was heard exactly is `exact`
-    (`analysis/sifat.py`). The row's attribute comparison is unchanged.
+  - **Sifat rows follow the phonemes output.** At «ٱللَّهُ» the lab showed «حرف مختلف (الصواب
+    لَّ)» on a letter read exactly as expected. Now a `changed` or `delete` row whose stretch of
+    the expected script was heard exactly is `exact` (`analysis/sifat.py`).
+    - *Correction (audit 2026-10-16):* the cause given here was wrong. It isn't the model's sifat
+      grouping; it's quran-muaalem's `merge_same_phoneme_group` (`explain.py:39-76`), which
+      pairs the lam of «ٱللَّهُ» with the lam before it.
+    - The relabel only hides the symptom: the row still compares the wrong letter's sifa.
+    - Over the whole Quran on a perfect recitation, 1,030 ayat lose 1,200 rows and 211 show 227
+      made-up tafkheem mismatches.
+    - To be redone at the cause; see `docs/research/README.md` (C1).
   - **A ghunnah where none is due** (a meem sakin hummed at a stop, heard «مّْ (غنة)», expected
     «مْ») was an inserted letter, the most serious mark. It's now `error_type: tajweed` with
     `ghunnah: "unexpected"`, shown as «غنة في غير موضعها» (`analysis/rows.py`).
