@@ -5,7 +5,9 @@ Ported unchanged from tajweed_ai `muaalem_lab/rules.py`. Only Hafs 'an 'Asim via
 exists for now. Its entries come from the teachers' rulings of 2026-10-13 and 2026-10-14
 (tajweed_ai docs/project-log.md, "Teachers' rulings"); they override published sources where the
 two differ. Other riwayat are added as further tables here, never as branches in the code that
-uses them. Settings no teacher has ruled on yet keep the phonetizer's own choices (`UNREVIEWED`).
+uses them. Settings fixed or narrowed from al-Shatibiyya's text, before any teacher ruled on them,
+are listed in `FROM_SOURCES`; the rest no teacher has ruled on keep the phonetizer's own choices
+(`UNREVIEWED`).
 """
 
 import dataclasses
@@ -112,10 +114,17 @@ class Rules:
 
 # Settings nobody has ruled on yet: the phonetizer's own options stay available.
 UNREVIEWED = (
-    "madd_aared_len", "madd_alleen_len", "madd_yaa_alayn_alharfy", "meem_aal_imran",
-    "noon_and_yaseen", "yabsut", "bastah", "almusaytirun", "bimusaytir", "tasheel_or_madd",
-    "yalhath_dhalik", "irkab_maana", "noon_tamnna", "harakat_daaf", "idgham_nakhluqkum",
+    "madd_aared_len", "madd_alleen_len", "meem_aal_imran", "almusaytirun", "idgham_nakhluqkum",
     "raa_yasr", "recitation_speed",
+)  # fmt: skip
+
+# Settings fixed or narrowed from al-Shatibiyya's text, not from a teacher's ruling (audit
+# 2026-10-16, docs/research/shatibiyya-sources.md): what only al-Tayyiba gives is removed. They
+# wait for the teachers' confirmation.
+FROM_SOURCES = (
+    "noon_and_yaseen", "yabsut", "bastah", "bimusaytir", "ghonna_lam_and_raa",
+    "saken_before_hamz", "takbeer", "yalhath_dhalik", "irkab_maana", "madd_yaa_alayn_alharfy",
+    "harakat_daaf", "noon_tamnna", "tasheel_or_madd",
 )  # fmt: skip
 
 RAA = "ر"
@@ -130,6 +139,20 @@ HAFS_SHATIBIYYA = Rules(
         "alif_salasila": "ithbat",
         # «ءَاتَىٰنِۦَ» (27:36): stopped on with the yaa as a madd; without it is a mistake
         "yaa_ataan": "ithbat",
+        # from al-Shatibiyya's text (FROM_SOURCES); the other way is al-Tayyiba's only
+        # «يسٓ ۝ وَٱلْقُرْءَانِ», «نٓ ۝ وَٱلْقَلَمِ»: the noon is read clearly
+        "noon_and_yaseen": "izhar",
+        # «وَيَبْصُۜطُ» (2:245), «بَصْۜطَةًۭ» (7:69): with a seen
+        "yabsut": "seen",
+        "bastah": "seen",
+        # «بِمُصَيْطِرٍ» (88:22): with a saad
+        "bimusaytir": "saad",
+        # no ghunnah when a noon or tanween merges into lam or raa
+        "ghonna_lam_and_raa": "no_ghonna",
+        # no sakt before a hamza (on al-, shay' or a sakin letter at a word end)
+        "saken_before_hamz": "tahqeek",
+        # no takbeer is part of the riwaya for Hafs
+        "takbeer": "no_takbeer",
     },
     allowed={
         # munfasil and muttasil: (4,4), (5,5) or (4,5); qasr of the munfasil is a mistake
@@ -161,6 +184,16 @@ HAFS_SHATIBIYYA = Rules(
         "sakt_maleeyah": ("sakt", "waqf", "idgham"),
         # between al-Anfal and al-Tawba: a stop, sakt and wasl are all correct (2026-10-14)
         "between_anfal_and_tawba": ("waqf", "sakt", "wasl"),
+        # from al-Shatibiyya's text (FROM_SOURCES): «يَلْهَثْ ذَّٰلِكَ», «ٱرْكَب مَّعَنَا» merged
+        # (or a stop between them), never read clearly
+        "yalhath_dhalik": ("idgham", "waqf"),
+        "irkab_maana": ("idgham", "waqf"),
+        # the 'ayn of كهيعص and حمٓ ۝ عٓسٓقٓ: 6 (preferred) or 4
+        "madd_yaa_alayn_alharfy": (4, 6),
+        # both ways correct whatever the setting (see alternatives); the setting picks the one shown
+        "harakat_daaf": ("fath", "dam"),
+        "noon_tamnna": ("ishmam", "rawm"),
+        "tasheel_or_madd": ("madd", "tasheel"),
         "rewaya": ("hafs",),
     },
     defaults={
@@ -168,6 +201,7 @@ HAFS_SHATIBIYYA = Rules(
         # «ٱلْقِطْرِ» (2026-10-14)
         "raa_misr": "tafkheem",
         "raa_alqitr": "tarqeeq",
+        "madd_yaa_alayn_alharfy": 6,
     },
     connected_alternatives={
         "sakt_maleeyah": ("sakt", "idgham"),

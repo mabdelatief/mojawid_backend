@@ -71,12 +71,22 @@ request.
 
 | Field | What it is |
 |---|---|
-| `reading` | The reading settings a reciter may change: `name`, `label_ar`, `choices` (`value` + `label_ar`; madd lengths come labelled «٤ حركات», «حركتان»), `default`, and `main` (show first; the rest go under «خيارات قراءة أخرى»). Settings the teachers' rulings fix are not listed. Send any of them back as `reading` in `/v1/reference` (and, later, analyses), by `name` → `value` |
+| `reading` | The reading settings a reciter may change: `name`, `label_ar`, `choices` (`value` + `label_ar`; madd lengths come labelled «٤ حركات», «حركتان»), `default`, and `main` (show first; the rest go under «خيارات قراءة أخرى»). Settings the teachers' rulings or al-Shatibiyya's text fix are not listed, and a fixed one sent anyway is ignored. Send any of them back as `reading` in `/v1/reference` and analyses, by `name` → `value` |
 | `practices` | Optional practices, all off by default: `{"raum": false}` («أتدرّب على الوقف بالرَّوم») |
 | `surahs` | 114 × `{index, name, ayat}` (Arabic names) |
 | `limits` | `max_recording_seconds` 60, `soft_recording_seconds` 30 (past this the result carries a warning), `max_upload_bytes` 2 MiB, `max_ayat_manual` 6 |
 | `tajweed_classes` | The 7 colour classes, strongest first: `madd6`, `wajib`, `jaiz`, `ghunnah`, `qalqalah`, `tafkheem`, `silent` (the design tokens maddLazim, maddWajib, maddJaiz, ikhfaGhunnah, qalqalah, raaTafkheem, idghamSilent) |
 | `engine` | `quran_transcript` and `rules` versions, for bug reports |
+
+**Changed 2026-10-16 (data only; the schema is the same).** The settings follow Hafs via
+al-Shatibiyya alone; what only al-Tayyiba gives is gone:
+- no longer listed (fixed): `noon_and_yaseen` (izhar), `yabsut` and `bastah` (seen), `bimusaytir`
+  (saad), `ghonna_lam_and_raa` (none), `saken_before_hamz` (no sakt), `takbeer` (none);
+- narrowed: `yalhath_dhalik` and `irkab_maana` to idgham or waqf, `madd_yaa_alayn_alharfy` to 4
+  or 6 (default 6). A stored value no longer allowed (e.g. `irkab_maana: izhar`) now gets
+  `400 invalid_reading_settings`, so drop saved settings that aren't in the new choices;
+- `harakat_daaf`, `noon_tamnna`, `tasheel_or_madd` and `start_with_ism` still offer both ways, but
+  the analysis now accepts either way whatever the setting: the setting only picks the way shown.
 
 ### `POST /v1/reference`
 The text to show for whole ayat, with its words and tajweed colours. **Always take the Quran text

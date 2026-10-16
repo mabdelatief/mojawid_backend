@@ -163,6 +163,8 @@ def setting_examples(name: str, found: Found) -> list[dict[str, Any]]:
 
 
 def _status(name: str) -> str:
+    if name in R.FROM_SOURCES:
+        return "sources"
     if name in R.DEFAULT.fixed:
         return "fixed"
     return "ruled" if name in R.DEFAULT.allowed else "unreviewed"
@@ -206,7 +208,8 @@ def settings_section(found: Found) -> dict[str, Any]:
         if o.name not in NOT_TAJWEED
     ]
     for name, value in R.DEFAULT.fixed.items():
-        items.append(_setting_item(name, [value], value, found))
+        if name not in NOT_TAJWEED:
+            items.append(_setting_item(name, [value], value, found))
     return section("settings", items)
 
 

@@ -34,9 +34,13 @@ def test_every_rules_entry_has_an_item() -> None:
     settings = {o.name for o in moshaf_all_options()} | set(R.DEFAULT.fixed)
     assert {f"setting.{n}" for n in settings - sections.NOT_TAJWEED} <= ITEMS.keys()
     assert not {f"setting.{n}" for n in sections.NOT_TAJWEED} & ITEMS.keys()
-    allowed = {f"setting.{n}" for n in R.DEFAULT.allowed if n != "rewaya"}
+    sources = set(R.FROM_SOURCES) - sections.NOT_TAJWEED
+    allowed = {f"setting.{n}" for n in R.DEFAULT.allowed if n not in {"rewaya", *sources}}
     assert all(ITEMS[i]["status"] == "ruled" for i in allowed)
-    assert all(ITEMS[f"setting.{n}"]["status"] == "fixed" for n in R.DEFAULT.fixed)
+    fixed = set(R.DEFAULT.fixed) - sections.NOT_TAJWEED - sources
+    assert all(ITEMS[f"setting.{n}"]["status"] == "fixed" for n in fixed)
+    assert all(ITEMS[f"setting.{n}"]["status"] == "sources" for n in sources)
+    assert not set(R.FROM_SOURCES) & set(R.UNREVIEWED)
     unreviewed = set(R.UNREVIEWED) - sections.NOT_TAJWEED
     assert all(ITEMS[f"setting.{n}"]["status"] == "unreviewed" for n in unreviewed)
     assert {f"madd_lengths.{k}" for k in R.DEFAULT.madd_lengths} <= ITEMS.keys()

@@ -38,6 +38,11 @@ async def test_meta(client: httpx.AsyncClient) -> None:
     assert settings["madd_monfasel_len"]["choices"][0]["label_ar"] == "٤ حركات"
     assert {c["label_ar"] for c in settings["meem_mokhfah"]["choices"]} == {"ميم", "إخفاء"}
     assert "alif_salasila" not in settings  # fixed by the teachers' rulings, not offered
+    # fixed from al-Shatibiyya's text, not offered; narrowed ones offer only its ways
+    assert not {"noon_and_yaseen", "takbeer", "yabsut", "bimusaytir"} & settings.keys()
+    assert [c["value"] for c in settings["irkab_maana"]["choices"]] == ["idgham", "waqf"]
+    assert [c["value"] for c in settings["madd_yaa_alayn_alharfy"]["choices"]] == [4, 6]
+    assert settings["madd_yaa_alayn_alharfy"]["default"] == 6
     assert meta["practices"] == {"raum": False}
     assert meta["limits"]["max_ayat_manual"] == 6
     assert meta["engine"]["quran_transcript"] == "0.6.4+muaalem.2"
@@ -62,6 +67,16 @@ async def test_reference_for_fatiha_with_openings(client: httpx.AsyncClient) -> 
     assert set(ref["classes_present"]) <= {span[2] for span in ref["tajweed"]}
 
 
+async def test_a_fixed_setting_sent_is_ignored(client: httpx.AsyncClient) -> None:
+    # 68:1 «نٓ ۚ وَٱلْقَلَمِ»: idgham is al-Tayyiba's only, so the noon stays clear
+    plain = (await _reference(client, sura=68, aya_start=1, aya_end=1)).json()
+    sent = await _reference(
+        client, sura=68, aya_start=1, aya_end=1, reading={"noon_and_yaseen": "idgham"}
+    )
+    assert sent.status_code == 200
+    assert sent.json() == plain
+
+
 async def test_reading_settings_change_where_the_text_splits(client: httpx.AsyncClient) -> None:
     # 75:27 «مَنْ رَاقٍ»: connected with sakt by default; set to a stop, it splits in two
     sakt = (await _reference(client, sura=75, aya_start=27, aya_end=27)).json()
@@ -84,6 +99,8 @@ async def test_reading_settings_change_where_the_text_splits(client: httpx.Async
         ({"sura": 2, "aya_start": 4, "aya_end": 4, "reading": {"madd_monfasel_len": 2}}, 400,
          "invalid_reading_settings"),
         ({"sura": 2, "aya_start": 4, "aya_end": 4, "reading": {"sakt_man_raq": "idraj"}}, 400,
+         "invalid_reading_settings"),
+        ({"sura": 2, "aya_start": 4, "aya_end": 4, "reading": {"irkab_maana": "izhar"}}, 400,
          "invalid_reading_settings"),
         ({"sura": 2, "aya_start": 4, "aya_end": 4, "prefixes": ["x"]}, 422, "invalid_request"),
         ({"sura": 115, "aya_start": 1, "aya_end": 1}, 422, "invalid_request"),

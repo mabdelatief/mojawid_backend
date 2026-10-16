@@ -81,7 +81,7 @@ main { max-width: 820px; margin: 0 auto; padding: 12px 16px 80px; }
   border: 1px solid var(--rule); color: var(--ink-soft); margin-top: 2px;
 }
 .chip.ruled, .chip.fixed { border-color: var(--frame); color: var(--frame); }
-.chip.unreviewed { border-color: var(--gold); color: var(--gold); }
+.chip.unreviewed, .chip.sources { border-color: var(--gold); color: var(--gold); }
 .item .body p { margin: .45em 0; }
 dl.facts { margin: .5em 0; display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; }
 dl.facts dt { color: var(--ink-soft); font-size: .88rem; }

@@ -30,6 +30,9 @@ GOLDENS: list[dict[str, Any]] = json.loads(
 # patch 3b: «بَسَطتَ» (5:28), a ط merged incompletely into ت, has no qalqalah here
 PATCH_3B_CASES = {'5:28-29|istiaatha|{"madd_aared_len": 2}'}
 
+# ways the lab offered that Hafs via al-Shatibiyya doesn't have (rules.FROM_SOURCES)
+REMOVED_WAYS = {"yalhath_dhalik": "izhar", "irkab_maana": "izhar"}
+
 
 def _sifat_without_patch_3b(sifat: list[dict[str, Any]]) -> list[dict[str, Any]]:
     out = [dict(s) for s in sifat]
@@ -52,7 +55,14 @@ def _id(golden: dict[str, Any]) -> str:
 def test_port_matches_lab(golden: dict[str, Any]) -> None:
     c = golden["case"]
     text = TextSelection(c["sura"], c["aya_start"], c["aya_end"], prefixes=tuple(c["prefixes"]))
-    ref = build_reference(text, moshaf_from_dict(c["reading"]))
+    if c["reading"].items() & REMOVED_WAYS.items():
+        # izhar at يلهث ذلك / اركب معنا: al-Tayyiba's only, so no longer a way to connect there
+        with pytest.raises(ValueError, match="is not a way to connect"):
+            build_reference(text, moshaf_from_dict(c["reading"], stored=True))
+        return
+    # read back as stored: idgham in ن والقلم is no longer offered, but still checks that the
+    # port phonetizes it as the lab does
+    ref = build_reference(text, moshaf_from_dict(c["reading"], stored=True))
     got = summarize(ref, tajweed_spans(ref.uthmani, ref.phonetic))
     if _id(golden) in PATCH_3B_CASES:
         sifat = _sifat_without_patch_3b([s.model_dump() for s in ref.phonetic.sifat])
