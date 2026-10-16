@@ -112,7 +112,7 @@ def test_both_valid_entries_name_the_right_words() -> None:
     for b in DEFAULT.both_valid:
         if b.letter == RAA and b.word is not None:
             word = bare(ayah_words(b.sura, b.aya)[b.word])
-            assert word.endswith(("مصر", "القطر", "نذر", "فرق")), (b, word)
+            assert word.endswith(("مصر", "القطر", "نذر", "فرق", "سر")), (b, word)
 
 
 def test_both_valid_lookup_respects_stop_and_letter() -> None:
@@ -121,6 +121,9 @@ def test_both_valid_lookup_respects_stop_and_letter() -> None:
     assert DEFAULT.both_valid_at(level, LetterPlace(12, 21, 4, False, RAA)) is None
     assert DEFAULT.both_valid_at(level, LetterPlace(12, 21, 4, True, "م")) is None
     assert DEFAULT.both_valid_at(level, LetterPlace(26, 63, 10, False, RAA)) is not None  # فِرْقٍ
+    assert DEFAULT.both_valid_at(level, LetterPlace(89, 4, 2, True, RAA)) is not None  # يَسْرِ
+    assert DEFAULT.both_valid_at(level, LetterPlace(89, 4, 2, False, RAA)) is None
+    assert DEFAULT.both_valid_at(level, LetterPlace(44, 23, 0, True, RAA)) is not None  # فَأَسْرِ
 
 
 def test_maleeyah_and_anfal_tawba_choices() -> None:

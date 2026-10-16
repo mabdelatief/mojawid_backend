@@ -2214,11 +2214,11 @@
          "ghunnah"
         ]
        ],
-       "expect": "ضَعْفَوّْ",
+       "expect": "ضَعْفَوْ (مد ٣ حركات)",
        "notes": []
       }
      ],
-     "hash": "6941972492c23cd2"
+     "hash": "8fbdbe7cc840b637"
     },
     {
      "id": "setting.idgham_nakhluqkum",
@@ -2355,9 +2355,33 @@
        "notes": [
         "الراء مفخمة"
        ]
+      },
+      {
+       "sura": 26,
+       "aya": 52,
+       "ref": "الشعراء ٥٢",
+       "text": "مُوسَىٰٓ أَنْ أَسْرِ",
+       "mark": [
+        14,
+        20
+       ],
+       "cut_before": true,
+       "cut_after": true,
+       "at_stop": true,
+       "spans": [
+        [
+         5,
+         8,
+         "jaiz"
+        ]
+       ],
+       "expect": "ءَسْرْ",
+       "notes": [
+        "الراء مرققة"
+       ]
       }
      ],
-     "hash": "ac412f59515fc006"
+     "hash": "176d82dd66e8b3cc"
     },
     {
      "id": "setting.raa_alqitr",
@@ -3824,6 +3848,226 @@
       }
      ],
      "hash": "93831274ba6f0cc3"
+    },
+    {
+     "id": "both_valid.89.4.2",
+     "title": "«يَسْرِ» — الفجر ٤",
+     "status": "ruled",
+     "source": "rules.py: both_valid 89:4",
+     "body": [
+      "راء «مِصْرَ» عند الوقف: يصح التفخيم (وهو المفضّل) والترقيق."
+     ],
+     "facts": [],
+     "examples": [
+      {
+       "sura": 89,
+       "aya": 4,
+       "ref": "الفجر ٤",
+       "text": "وَٱلَّيْلِ إِذَا يَسْرِ",
+       "mark": [
+        17,
+        23
+       ],
+       "cut_before": false,
+       "cut_after": false,
+       "at_stop": true,
+       "spans": [
+        [
+         2,
+         3,
+         "silent"
+        ]
+       ],
+       "expect": "يَسْرْ",
+       "notes": [
+        "الراء مرققة"
+       ]
+      }
+     ],
+     "hash": "7634b3f58d9d7b4b"
+    },
+    {
+     "id": "both_valid.20.77.5",
+     "title": "«أَسْرِ» — طه ٧٧",
+     "status": "ruled",
+     "source": "rules.py: both_valid 20:77",
+     "body": [
+      "راء «مِصْرَ» عند الوقف: يصح التفخيم (وهو المفضّل) والترقيق."
+     ],
+     "facts": [],
+     "examples": [
+      {
+       "sura": 20,
+       "aya": 77,
+       "ref": "طه ٧٧",
+       "text": "مُوسَىٰٓ أَنْ أَسْرِ",
+       "mark": [
+        14,
+        20
+       ],
+       "cut_before": true,
+       "cut_after": true,
+       "at_stop": true,
+       "spans": [
+        [
+         5,
+         8,
+         "jaiz"
+        ]
+       ],
+       "expect": "ءَسْرْ",
+       "notes": [
+        "الراء مرققة"
+       ]
+      }
+     ],
+     "hash": "dcf4de45b7d7e6eb"
+    },
+    {
+     "id": "both_valid.26.52.4",
+     "title": "«أَسْرِ» — الشعراء ٥٢",
+     "status": "ruled",
+     "source": "rules.py: both_valid 26:52",
+     "body": [
+      "راء «فِرْقٍ» وصلًا: يصح التفخيم والترقيق."
+     ],
+     "facts": [],
+     "examples": [
+      {
+       "sura": 26,
+       "aya": 52,
+       "ref": "الشعراء ٥٢",
+       "text": "مُوسَىٰٓ أَنْ أَسْرِ",
+       "mark": [
+        14,
+        20
+       ],
+       "cut_before": true,
+       "cut_after": true,
+       "at_stop": true,
+       "spans": [
+        [
+         5,
+         8,
+         "jaiz"
+        ]
+       ],
+       "expect": "ءَسْرْ",
+       "notes": [
+        "الراء مرققة"
+       ]
+      }
+     ],
+     "hash": "eda1099263f30c46"
+    },
+    {
+     "id": "both_valid.11.81.8",
+     "title": "«فَأَسْرِ» — هود ٨١",
+     "status": "ruled",
+     "source": "rules.py: both_valid 11:81",
+     "body": [
+      "راء «مِصْرَ» عند الوقف: يصح التفخيم (وهو المفضّل) والترقيق."
+     ],
+     "facts": [],
+     "examples": [
+      {
+       "sura": 11,
+       "aya": 81,
+       "ref": "هود ٨١",
+       "text": "يَصِلُوٓا۟ إِلَيْكَ فَأَسْرِ",
+       "mark": [
+        20,
+        28
+       ],
+       "cut_before": true,
+       "cut_after": true,
+       "at_stop": true,
+       "spans": [
+        [
+         0,
+         2,
+         "ghunnah"
+        ],
+        [
+         6,
+         8,
+         "jaiz"
+        ],
+        [
+         8,
+         10,
+         "silent"
+        ]
+       ],
+       "expect": "فَءَسْرْ",
+       "notes": [
+        "الراء مرققة"
+       ]
+      }
+     ],
+     "hash": "695c4f6f978f3eeb"
+    },
+    {
+     "id": "both_valid.15.65.0",
+     "title": "«فَأَسْرِ» — الحجر ٦٥",
+     "status": "ruled",
+     "source": "rules.py: both_valid 15:65",
+     "body": [
+      "راء «مِصْرَ» عند الوقف: يصح التفخيم (وهو المفضّل) والترقيق."
+     ],
+     "facts": [],
+     "examples": [
+      {
+       "sura": 15,
+       "aya": 65,
+       "ref": "الحجر ٦٥",
+       "text": "فَأَسْرِ",
+       "mark": [
+        0,
+        8
+       ],
+       "cut_before": false,
+       "cut_after": true,
+       "at_stop": true,
+       "spans": [],
+       "expect": "فَءَسْرْ",
+       "notes": [
+        "الراء مرققة"
+       ]
+      }
+     ],
+     "hash": "40bc5cbbd306be44"
+    },
+    {
+     "id": "both_valid.44.23.0",
+     "title": "«فَأَسْرِ» — الدخان ٢٣",
+     "status": "ruled",
+     "source": "rules.py: both_valid 44:23",
+     "body": [
+      "راء «مِصْرَ» عند الوقف: يصح التفخيم (وهو المفضّل) والترقيق."
+     ],
+     "facts": [],
+     "examples": [
+      {
+       "sura": 44,
+       "aya": 23,
+       "ref": "الدخان ٢٣",
+       "text": "فَأَسْرِ",
+       "mark": [
+        0,
+        8
+       ],
+       "cut_before": false,
+       "cut_after": true,
+       "at_stop": true,
+       "spans": [],
+       "expect": "فَءَسْرْ",
+       "notes": [
+        "الراء مرققة"
+       ]
+      }
+     ],
+     "hash": "8ac2d2c86559a935"
     },
     {
      "id": "both_valid.34.12.9",
@@ -8223,7 +8467,7 @@
          "tafkheem"
         ]
        ],
-       "expect": "ءَلَّيّْ",
+       "expect": "ءَلَّيْ (مد ٣ حركات)",
        "notes": []
       },
       {
@@ -8288,7 +8532,7 @@
        "notes": []
       }
      ],
-     "hash": "69f31f2309d101a4"
+     "hash": "a1b7b5c4f371937a"
     },
     {
      "id": "engine.iqlab",
@@ -10952,7 +11196,7 @@
      "facts": [
       [
        "عدد المواضع في المصحف",
-       "٩٦٢٨"
+       "٩٦٢٤"
       ]
      ],
      "examples": [
@@ -11289,7 +11533,7 @@
        ]
       }
      ],
-     "hash": "7a40e204843a1765"
+     "hash": "52650f014f6dd490"
     },
     {
      "id": "engine.raa_tarqeeq",
@@ -11302,7 +11546,7 @@
      "facts": [
       [
        "عدد المواضع في المصحف",
-       "٢٧٧٢"
+       "٢٧٧٦"
       ]
      ],
      "examples": [
@@ -11579,7 +11823,7 @@
        ]
       }
      ],
-     "hash": "dd6d59f038b0bb55"
+     "hash": "d323bac72394564e"
     },
     {
      "id": "engine.qalqalah_wasl",

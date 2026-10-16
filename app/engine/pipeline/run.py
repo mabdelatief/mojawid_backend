@@ -14,6 +14,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from app.engine.pipeline.alternatives import closest_reading
 from app.engine.pipeline.analysis.report import analyze
 from app.engine.pipeline.choose_range import choose_range, infer_path
 from app.engine.pipeline.detect import detect
@@ -105,6 +106,7 @@ def analyse(job: Job, heard: Heard, duration_s: float) -> Outcome:
     inferred = inferred or infer_path(text, moshaf, heard)
     if inferred is not None:
         ref = build_reference_from_structure(inferred.structure, moshaf)
+    ref = closest_reading(ref, moshaf, heard.text)
     report = analyze(heard, ref, job.raum)
     add_row_fields(report["errors"], ref)
     return Outcome(

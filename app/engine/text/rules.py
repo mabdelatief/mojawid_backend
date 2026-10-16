@@ -48,6 +48,15 @@ class LetterPlace:
 
 
 @dataclasses.dataclass(frozen=True)
+class Alternative:
+    """A word read more than one correct way whatever the setting (a MoshafAttributes field)."""
+
+    field: str
+    values: tuple[str, ...]
+    suras: tuple[int, ...] = ()  # only in these suras; empty: anywhere
+
+
+@dataclasses.dataclass(frozen=True)
 class Rules:
     """One riwaya + tareeq."""
 
@@ -66,6 +75,9 @@ class Rules:
     # special boundaries where several connected ways are all correct (field -> values): path
     # inference keeps whichever was heard, and none of them is a mistake
     connected_alternatives: Mapping[str, tuple[str, ...]] = dataclasses.field(default_factory=dict)
+    # words read two correct ways whatever the setting (field -> values): the analysis keeps the
+    # one closest to what was heard, so the other is never flagged
+    alternatives: tuple[Alternative, ...] = ()
     # optional practices: correct, but only when the reciter says beforehand they mean it (name ->
     # default). Off, the same sound is taken as a mistake
     practices: Mapping[str, bool] = dataclasses.field(default_factory=dict)
@@ -160,6 +172,15 @@ HAFS_SHATIBIYYA = Rules(
     connected_alternatives={
         "sakt_maleeyah": ("sakt", "idgham"),
     },
+    alternatives=(
+        # al-Shatibiyya gives Hafs both ways in each (docs/research/shatibiyya-sources.md; the
+        # teacher's ruling for ٱلِٱسْمُ), so neither is a mistake (audit 2026-10-16, R4 and R9).
+        # ضعف only in al-Rum (30:54): in al-Anfal (8:66) Hafs reads fath alone
+        Alternative("harakat_daaf", ("fath", "dam"), suras=(30,)),
+        Alternative("noon_tamnna", ("ishmam", "rawm")),
+        Alternative("tasheel_or_madd", ("madd", "tasheel")),
+        Alternative("start_with_ism", ("alism", "lism")),
+    ),
     practices={
         # raum at a stop is correct, but the teachers don't read with it: it is learnt for the
         # ijaza. A faint haraka at a stop also comes from not finishing the last letter, a
@@ -188,6 +209,13 @@ HAFS_SHATIBIYYA = Rules(
             BothValid(s, a, w, _RAA_LEVEL, _RAA_VALUES, "stop",
                       "«مِصْرَ» at a stop: tafkheem (preferred) and tarqeeq are both correct", RAA)
             for s, a, w in ((10, 87, 7), (12, 21, 4), (12, 99, 9), (43, 51, 9))
+        ),
+        BothValid(89, 4, 2, _RAA_LEVEL, _RAA_VALUES, "stop",
+                  "«يَسْرِ» at a stop: tafkheem and tarqeeq of the raa are both correct", RAA),
+        *(
+            BothValid(s, a, w, _RAA_LEVEL, _RAA_VALUES, "stop",
+                      "«أَسْرِ» at a stop: tafkheem and tarqeeq of the raa are both correct", RAA)
+            for s, a, w in ((20, 77, 5), (26, 52, 4), (11, 81, 8), (15, 65, 0), (44, 23, 0))
         ),
         BothValid(34, 12, 9, _RAA_LEVEL, _RAA_VALUES, "stop",
                   "«ٱلْقِطْرِ» at a stop: tarqeeq (preferred) and tafkheem are both correct", RAA),
