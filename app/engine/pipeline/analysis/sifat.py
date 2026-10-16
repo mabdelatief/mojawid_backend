@@ -8,6 +8,11 @@ decoder) never applies to our decoder and is dropped.
 New for Mojawid (user's decision, 2026-10-15): `allowed`. Where the rules count every value as
 correct at that letter (rules.both_valid: e.g. the raa of «مِصْرَ» at a stop), a differing value
 is marked allowed, so the app shows it as correct, the way allowed madd lengths are never counted.
+
+Fixed in Mojawid (user's decision, 2026-10-16): a row's tag follows what the main (phonemes)
+output heard on that stretch, not only the sifat outputs' letter groups. Those can split the
+letters differently from the phonemes output (one lam where it heard the doubled lam of «ٱللَّهُ»),
+and the lab then shows «حرف مختلف» on a letter read exactly as expected.
 """
 
 from typing import Any
@@ -49,6 +54,29 @@ def _tag(g: Any) -> str:
     return tag
 
 
+def heard_at(diffs: list[tuple[int, str]], start: int, end: int) -> str:
+    """The heard text the diff lines up with expected[start:end]; an insertion right after the
+    span counts toward it (as the row alignment gives it to that row)."""
+    out, pos = [], 0
+    for op, text in diffs:
+        if op == dmp.diff_match_patch.DIFF_INSERT:
+            if start < pos <= end:
+                out.append(text)
+            continue
+        a, pos = pos, pos + len(text)
+        if op == dmp.diff_match_patch.DIFF_EQUAL and max(a, start) < min(pos, end):
+            out.append(text[max(a, start) - a : min(pos, end) - a])
+    return "".join(out)
+
+
+def _read_as_expected(g: Any, tag: str, diffs: list[tuple[int, str]], starts: list[int]) -> bool:
+    """A changed or missing row whose stretch the phonemes output heard exactly as expected."""
+    if tag not in ("changed", "delete") or g.ref_idx is None:
+        return False
+    start = starts[g.ref_idx]
+    return bool(heard_at(diffs, start, start + len(g.ref)) == g.ref)
+
+
 def _attr(level: str, ctx: tuple[Any, Any, Heard, Any], allowed: bool) -> dict[str, Any]:
     exp, got, heard, out_idx = ctx
     e = label(getattr(exp, level)) if exp is not None else None
@@ -86,15 +114,21 @@ def sifat_rows(heard: Heard, ref: Reference) -> list[Row]:
         diffs=diffs,
     )
     groups = ref_groups(ref)
+    starts = [0]
+    for s in exp_sifat:
+        starts.append(starts[-1] + len(s.phonemes))
     rows = []
     for g in aligned:
         exp = exp_sifat[g.ref_idx] if g.ref_idx is not None else None
         got = heard.sifat[g.out_idx] if g.out_idx is not None else None
         allowed = _allowed_levels(ref, groups, g.ref_idx)
         ctx = (exp, got, heard, g.out_idx)
+        tag, pred = _tag(g), g.out
+        if _read_as_expected(g, tag, diffs, starts):
+            tag, pred = "exact", g.ref
         rows.append(
-            {"tag": _tag(g), "ref": g.ref, "pred": g.out, "ref_text": describe(g.ref),
-             "pred_text": describe(g.out), "ref_idx": g.ref_idx,
+            {"tag": tag, "ref": g.ref, "pred": pred, "ref_text": describe(g.ref),
+             "pred_text": describe(pred), "ref_idx": g.ref_idx,
              "attrs": {lv: _attr(lv, ctx, lv in allowed) for lv in SIFAT_LEVELS}}
         )  # fmt: skip
     return rows

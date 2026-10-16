@@ -3,6 +3,10 @@
 Ported from tajweed_ai `muaalem_lab/analysis.py` (_rules, _is_false_alarm, _ghunnah,
 _valid_variant, _error_row). explain_error has no ghunnah rule, so a held ghunnah heard at the
 wrong length is named here.
+
+New in Mojawid (user's decision, 2026-10-16): "unexpected", a ghunnah held on a noon or meem where
+none is due (a meem sakin hummed at a stop). explain_error calls it an inserted letter, the most
+serious kind; it is a tajweed mistake.
 """
 
 from typing import Any
@@ -12,7 +16,7 @@ from app.engine.text import rules as RULES
 from app.engine.text.qt import alph
 from app.engine.text.readable import describe, harakat
 from app.engine.text.reference import Reference
-from app.engine.text.tajweed import GHUNNAH_HEARD_AS, ghunnah_run, run_length
+from app.engine.text.tajweed import GHUNNAH_HEARD_AS, GHUNNAH_RUN, ghunnah_run, run_length
 
 GHUNNAH_RULE = {
     "ar": "الغنة",
@@ -21,7 +25,11 @@ GHUNNAH_RULE = {
     "correctness_type": "count",
     "tag": "ghunnah",
 }
-GHUNNAH_OPERATION = {"short": "delete", "long": "insert", "missing": "replace", "izhar": "replace"}
+GHUNNAH_OPERATION = {
+    "short": "delete", "long": "insert", "missing": "replace", "izhar": "replace",
+    "unexpected": "insert",
+}  # fmt: skip
+PLAIN_NASALS = alph.phonetics.noon + alph.phonetics.meem
 
 
 def rule_dicts(rules: Any) -> list[dict[str, Any]]:
@@ -43,15 +51,22 @@ def is_false_alarm(e: Any) -> bool:
     return False
 
 
+def unexpected_ghunnah(exp: str, got: str) -> bool:
+    """A single noon or meem expected, and the same letter heard held as a ghunnah."""
+    if not exp or exp[0] not in PLAIN_NASALS or run_length(exp, exp[0]) != 1:
+        return False
+    return run_length(got, exp[0]) >= GHUNNAH_RUN
+
+
 def ghunnah_state(e: Any, uthmani: str) -> str | None:
     """ "short", "long", "missing" or "izhar" when the reference group is a held ghunnah and the
-    run heard differs; None otherwise."""
+    run heard differs; "unexpected" for a ghunnah where none is due; None otherwise."""
     exp, got = e.expected_ph, e.preditected_ph
     if not got or e.ref_tajweed_rules:
         return None
     want = ghunnah_run(exp, uthmani)
     if not want:
-        return None
+        return "unexpected" if unexpected_ghunnah(exp, got) else None
     clear = GHUNNAH_HEARD_AS.get(exp[0], exp[0])[1:]  # the clear noon or meem of a hidden one
     if clear and run_length(got, clear) == 1 and run_length(got, exp[0]) == 0:
         # a single clear noon or meem where ikhfa or iqlab was due: izhar, not a short ghunnah

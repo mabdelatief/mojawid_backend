@@ -269,7 +269,7 @@ Alongside the report it returns `detection` (auto mode: candidates, `clear`, ope
 - `expected_len` / `predicted_len` (madd, in harakat: explain_error already counts a leen madd
   of N letters as N + 1);
 - `rules`, with Arabic names;
-- `ghunnah`: `short` / `long` / `missing` / `izhar`;
+- `ghunnah`: `short` / `long` / `missing` / `izhar`, and in Mojawid also `unexpected` (below);
 - `likely_false_alarm` + `valid_variant`: the difference is actually correct (an allowed madd
   length, the other meem form, raum with practice on);
 - `doubt_ratio` and `uncertain`.
@@ -307,6 +307,19 @@ Alongside the report it returns `detection` (auto mode: candidates, `clear`, ope
     allowed 2 or 6 harakat is called a mistake and one read at 3 is called allowed. Fixed in
     Mojawid (`analysis/rows.py`, user's decision, 2026-10-16); noted in tajweed_ai's project log,
     whose code is unchanged.
+- **Three more fixes over the lab** (user's decision, 2026-10-16). They were found on the user's
+  recording of al-Najm 23 and are noted in tajweed_ai's project log, whose code is unchanged:
+  - **Sifat rows follow the phonemes output.** The sifat outputs can group letters differently
+    from the phonemes output. At «ٱللَّهُ» they counted one lam where the doubled lam was heard,
+    and the lab showed «حرف مختلف (الصواب لَّ)» on a letter read exactly as expected. Now a
+    `changed` or `delete` row whose stretch of the expected script was heard exactly is `exact`
+    (`analysis/sifat.py`). The row's attribute comparison is unchanged.
+  - **A ghunnah where none is due** (a meem sakin hummed at a stop, heard «مّْ (غنة)», expected
+    «مْ») was an inserted letter, the most serious mark. It's now `error_type: tajweed` with
+    `ghunnah: "unexpected"`, shown as «غنة في غير موضعها» (`analysis/rows.py`).
+  - **Leen madd text.** The script writes a leen madd of N harakat as its yaa or waw N−1 times
+    with no haraka after. The lab's `readable.py` read 3 or more of them as a ghunnah
+    («قُرَيّْشْ (غنة)»). Now it's «قُرَيْشْ (مد ٤ حركات)» (`text/readable.py`).
 
 ## 5. How the lab app shows a result today
 
@@ -333,7 +346,8 @@ didn't.
   تغيير»), rule, expected, heard, madd count.
   - Valid variants are dimmed with their reason.
   - Uncertain rows say «غير مؤكد: تردد النموذج بين ما سمعه والصواب، فقد تكون القراءة صحيحة».
-  - Ghunnah is named as a state («ناقصة / زائدة / غير موجودة / أُظهر الحرف بلا إخفاء»), **never
+  - Ghunnah is named as a state («ناقصة / زائدة / غير موجودة / أُظهر الحرف بلا إخفاء», and in
+    Mojawid «غنة في غير موضعها»), **never
     a number**: the script's ghunnah run (3 or 4 letters) isn't harakat.
   - It becomes "Advanced → جدول المواضع".
 - **Sifat table:** one row per letter, with a filter for letters with a difference. It

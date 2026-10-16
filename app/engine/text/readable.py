@@ -3,6 +3,10 @@ things the script spells out by repeating letters (madd length, ghunnah, qalqala
 notes. Nobody ever sees the model's own symbols (ۦ ۥ ں ۾ ڇ ۜ …).
 
 Ported from tajweed_ai `muaalem_lab/readable.py`.
+
+Fixed in Mojawid (user's decision, 2026-10-16): a leen madd. The script writes one of N harakat as
+its yaa or waw N-1 times with no haraka after, and the lab read 3+ of them as a ghunnah
+(«قُرَيّْشْ (غنة)»). A ghunnah held into a yaa or waw always has a haraka after it.
 """
 
 from typing import TypedDict
@@ -14,6 +18,9 @@ SUKOON, SHADDA = "ْ", "ّ"
 HARAKA: dict[str, str] = {P.fatha: P.fatha, P.dama: P.dama, P.kasra: P.kasra}
 MADD_LETTER: dict[str, str] = {P.alif: "ا", P.waw_madd: "و", P.yaa_madd: "ي", P.alif_momala: "ا"}
 HIDDEN: dict[str, str] = {P.noon_mokhfah: "ن", P.meem_mokhfah: "م"}
+# a leen madd of 4+ harakat: its yaa or waw 3+ times with no haraka after
+LEEN_CONSONANTS: str = P.yaa + P.waw
+LEEN_RUN = 3
 # a consonant written 3+ times is a held ghunnah (mushaddad noon/meem, idgham into ي/و)
 GHUNNAH_CONSONANTS: str = P.noon + P.meem + P.yaa + P.waw
 # every symbol of the script that is not a plain Arabic letter or haraka
@@ -75,6 +82,8 @@ def _marks(core: str, n: int, residual: str) -> tuple[str, list[str]]:
 
 def _group(group: str) -> tuple[str, list[str]]:
     core, n, residual = split_group(group)
+    if core in LEEN_CONSONANTS and n >= LEEN_RUN and residual not in HARAKA:
+        return core + SUKOON, [f"مد {harakat(n + 1)}"]
     if core in MADD_LETTER:
         notes = [f"مد {harakat(n)}"] + (["إمالة"] if core == P.alif_momala else [])
         return MADD_LETTER[core], notes

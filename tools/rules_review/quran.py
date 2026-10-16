@@ -16,15 +16,13 @@ from functools import lru_cache
 from typing import Any
 
 from app.engine.text.moshaf import build_moshaf
-from app.engine.text.qt import alph, chunck_phonemes
+from app.engine.text.qt import alph
 from app.engine.text.quran_text import ayah_words, surah_list
-from app.engine.text.readable import HARAKA, SUKOON, ar_num, harakat, readable, split_group
+from app.engine.text.readable import ar_num, describe
 from app.engine.text.reference import phonetize
 from app.engine.text.tajweed import tajweed_spans
 
 CONTEXT_WORDS = 2  # words shown on each side of an example
-LEEN_CONSONANTS = alph.phonetics.yaa + alph.phonetics.waw
-LEEN_RUN = 3  # a leen madd of 4 harakat or more: its consonant 3+ times
 
 
 @dataclasses.dataclass(frozen=True)
@@ -163,7 +161,7 @@ def example(ayah: Ayah, start: int, end: int, context: int = CONTEXT_WORDS) -> d
         "cut_after": hi < len(ayah.words) - 1 or ayah.truncated,
         "at_stop": last == len(ayah.words) - 1,
         "spans": spans,
-        "expect": describe_review(ayah.phonemes_of(wa, wb)),
+        "expect": describe(ayah.phonemes_of(wa, wb)),
         "notes": _tafkheem_notes(ayah, start, end),
     }
 
@@ -187,22 +185,6 @@ def _is_name(ayah: Ayah, c: Cluster) -> bool:
         ch for ch in ayah.words[c.word] if ch.isalpha() and ch != alph.uthmani.hamzat_wasl
     )
     return plain.endswith(("لله", "للهم"))
-
-
-def describe_review(qps: str) -> str:
-    """readable.describe, except a leen madd: the script writes it as its consonant repeated
-    (N harakat as N-1 letters) with no haraka after, which readable takes for a ghunnah."""
-    text, notes = "", []
-    for g in chunck_phonemes(qps) if qps else []:
-        core, n, residual = split_group(g)
-        if core in LEEN_CONSONANTS and n >= LEEN_RUN and residual not in HARAKA:
-            t, ns = core + SUKOON, [f"مد {harakat(n + 1)}"]
-        else:
-            r = readable(g)
-            t, ns = r["text"], r["notes"]
-        text += t
-        notes += [x for x in ns if x not in notes]
-    return text + (f" ({'، '.join(notes)})" if notes else "")
 
 
 def word_example(

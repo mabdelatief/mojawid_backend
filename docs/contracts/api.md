@@ -187,7 +187,10 @@ endpoint arrives in phase 6. The lab's report fields are listed in `docs/model-a
   - `counted`: true only for `letter`, `haraka` and `tajweed`. Uncertain places and allowed
     variants are never counted, and never "worse" between attempts.
   - `expected_harakat` / `heard_harakat`: madd rows only, in harakat. Null for ghunnah, which is
-    shown as a state (`ghunnah`: `short`/`long`/`missing`/`izhar`), never a number.
+    shown as a state (`ghunnah`: `short`/`long`/`missing`/`izhar`/`unexpected`), never a number.
+    The Arabic: «ناقصة» / «زائدة» / «غير موجودة» / «أُظهر الحرف بلا إخفاء» / «غنة في غير موضعها».
+    `unexpected` (added 2026-10-16) is a ghunnah held where none is due; its row has
+    `error_type: tajweed`.
 - **`word_times`:** `[{segment, word, sura, aya, start_s, end_s}]`, each recited word's span in
   the user's own recording, for «استمع لتسجيلي».
   - Play the local copy from `start_s` to `end_s`.
@@ -196,6 +199,8 @@ endpoint arrives in phase 6. The lab's report fields are listed in `docs/model-a
   - Checked against Husary's own word timings: every word found, within 0.3 s.
 - **Sifat rows:** each attribute has `allowed`. It's true where the attribute differs but the
   rules count both ways as correct (e.g. the raa of «مِصْرَ» at a stop); show it as correct.
+  A row's `tag` follows what was heard on that letter: a letter heard exactly as expected is
+  `exact` even when the sifat outputs grouped it differently (2026-10-16).
 - **`warnings`:** `[{code, edges, message_ar}]`, with `code` either `cut_in_speech` (`edges`:
   `start` and/or `end`) or `over_30s`.
 
