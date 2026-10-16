@@ -26,6 +26,25 @@ accepts exactly what that path allows:
 - **Several code defects do invent mistakes,** or hide ones the teacher ruled on. Those come
   first.
 
+## Status after fix round 1 (2026-10-16)
+
+Fixed in mojawid_backend, each checked with its reproducer and new tests. Nothing was filed
+upstream (the user's decision).
+
+| Item | Status |
+|---|---|
+| R1, R2 madd pairs and taswiya | Fixed, eb6704c |
+| R3 idraj | Fixed, b16c6d5: counted at all four places. 36:52 reads «ا (مد حركتان، سكتة)» → «ا (مد حركتان)»; at 75:27 and 83:14 the missing «نْ (سكتة)» / «لْ (سكتة)» names it |
+| R4, R9 both ways accepted | Fixed, 26cebd3 (ضعف in al-Rum only; Hafs reads 8:66 with fath alone) |
+| R5, R6, R7 phonetizer | Fixed, 8d7e054: patch 3, `0.6.4+muaalem.2`; whole-Quran diff changed only those places |
+| R8 settings | Fixed, f7a8b2a; marked «من متن الشاطبية، للتأكيد» on the review page for the teachers |
+| R10 taa-marbuta stops | Open: teacher question 5 |
+| C1 sifat pairing | Fixed, 3a60599 |
+| C2 skipped word slides | Open: needs its own design |
+| C3, C4, C7, C8 | Fixed, b16c6d5 |
+| C5 hesitations | Open: teacher question 4, then a pause measurement |
+| C6 crash | Fixed, 9063e64 |
+
 ## 1. Results that contradict a ruling or al-Shatibiyya
 
 | # | What happens today | Should be | Cause, where | Evidence |
@@ -118,8 +137,8 @@ nor marks it.
 
 ## 7. What holds up
 
-- **Our two phonetizer patches are correct.** The vendored copy differs from upstream in exactly
-  those two places (`provenance.md`).
+- **Our two phonetizer patches are correct.** The vendored copy differed from upstream in exactly
+  those two places (`provenance.md`). Patch 3 (R5–R7) was added after this audit.
 - **The lab's decoder replaced the wrapper's buggy one,** with the edge fix, alignment by order,
   and no garbage confidences. Upstream still has the confidence bug (#6).
 - **Also correct:** path inference (stops, going back), ghunnah named as a state, false-alarm
@@ -145,8 +164,7 @@ nor marks it.
    - C7: leen text;
    - C8: doubt minimum.
 2. **Settings and rules (§6, R8).**
-3. **Phonetizer patch 3:** R5, R6, R7. Then the whole-Quran diff, then file upstream if you
-   agree.
+3. **Phonetizer patch 3:** R5, R6, R7. Then the whole-Quran diff. (Done; not filed upstream.)
 4. **Golden tests** for every case above, plus the nine taa-marbuta stops (R10), surah openings,
    short words and near letter pairs.
 5. **The real-user test set and the launch decision** (§5).

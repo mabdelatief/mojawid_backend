@@ -107,14 +107,28 @@ correct version is written in the same phonetic script the model writes.
     - munfasil 2 or 3, or 5 with muttasil 4, is a mistake;
     - a muttasil with the hamza ending the word, at a stop, may be 4, 5 or 6.
     Another allowed length is shown as correct, not as a mistake (`analysis._valid_variant`).
+    Lengths are also judged across the whole recording (`analysis/madd_consistency.py`, audit
+    R1–R2): one length per kind throughout (taswiya), munfasil with muttasil only as an allowed
+    pair, and a leen never longer than the 'arid. A row broken that way is a mistake with its
+    reason in `consistency_ar`.
   - **The meem in iqlab and ikhfa shafawi:** lips closed or a slight gap, both correct with the
     ghunnah held.
   - **Raa where both ways are correct:**
     - «وَنُذُرِ» (Al-Qamar) at a stop;
     - «فِرْقٍ» 26:63 when connected (tafkheem only at a stop);
     - «مِصْرَ» at a stop (tafkheem preferred);
-    - «ٱلْقِطْرِ» at a stop (tarqeeq preferred).
+    - «ٱلْقِطْرِ» at a stop (tarqeeq preferred);
+    - «يَسْرِ» 89:4 and «أَسْرِ» / «فَأَسْرِ» at a stop (from al-Shatibiyya's sources).
     Neither way is flagged.
+  - **Words read two ways, whatever the setting** (`rules.alternatives`, al-Shatibiyya's
+    sources): ضعف in al-Rum (fath or damm), تأمنا (ishmam or rawm), ءآلذكرين / ءآلآن / ءآلله
+    (madd or tasheel), and starting with ٱلِٱسْمُ. The expected reading is rebuilt with each way
+    and the closest to what was heard is kept (`pipeline/alternatives.py`); the setting only
+    picks the way shown.
+  - **Only al-Shatibiyya's ways are offered** (audit R8, `rules.FROM_SOURCES`, awaiting the
+    teachers' confirmation): izhar at يس / ن, سين in يبسط / بسطة, صاد in بمصيطر, no ghunnah into
+    ل / ر, no sakt before a hamza, no takbeer (all fixed); idgham or a stop at يلهث ذلك / اركب
+    معنا; the 'ayn of كهيعص / عسق at 4 or 6.
   - **Sakt** at عِوَجَا، مَّرْقَدِنَا، مَنْ رَاقٍ، بَلْ رَانَ: obligatory when connecting; a stop
     instead is allowed; running the words together is a mistake.
   - **«مَالِيَهْ ۜ هَلَكَ»:** a stop, sakt or idgham are all correct. When the reciter connects,
@@ -134,7 +148,7 @@ correct version is written in the same phonetic script the model writes.
   | `madd_mottasel_waqf` | مقدار المد المتصل وقفا | 4 |
   | `madd_aared_len` | مقدار المد العارض | 4 |
   | `madd_alleen_len` | مقدار مد اللين | 4 |
-  | `madd_yaa_alayn_alharfy` | مقدار المد اللازم الحرفي للعين | 6 |
+  | `madd_yaa_alayn_alharfy` | مقدار المد اللازم الحرفي للعين | 6 (or 4) |
   | `meem_mokhfah` | هل الميم مخفاة أو مدغمة | إخفاء (or ميم) |
 
 - **Openings:** the isti'adha and the basmala are each their own part, ending at a pause.
@@ -188,7 +202,9 @@ This is the order in `POST /api/c/test` (`muaalem_lab/collect_api.py`, `test`).
    - every heard letter group keeps its frames (`group_frames`), which is where its time in
      the recording comes from;
    - the per-frame probabilities of the phonemes output are kept (`phoneme_probs`), for
-     step 9.
+     step 9;
+   - a haraka or qalqalah mark with no letter before it (a model glitch) is dropped before
+     the letters are grouped; it used to crash the analysis (Mojawid, audit C6).
 5. **Which ayat** (auto mode only, `muaalem_lab/detect.py`):
    - the isti'adha and basmala are found and removed from the start;
    - quran-transcript's `PhoneticSearch` finds where the opening (120, then 240 letters, at 10,
@@ -218,7 +234,8 @@ This is the order in `POST /api/c/test` (`muaalem_lab/collect_api.py`, `test`).
    - If most of what was heard doesn't match even the best path (more than 30 %), it's another
      text and the plain reading is used.
 7. **The expected reading** is rebuilt with that path, so each stop has its stop form (sukoon,
-   tanween → alif, 'arid madd, qalqalah, no idgham into the next word).
+   tanween → alif, 'arid madd, qalqalah, no idgham into the next word). Then each word read
+   two correct ways is set to the way heard (Mojawid, `pipeline/alternatives.py`).
 8. **Comparison** (`muaalem_lab/analysis.py`, `analyze`):
    - quran-transcript's `explain_error` names each difference between the expected and heard
      scripts, with its Uthmani position;
