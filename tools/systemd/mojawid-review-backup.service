@@ -1,0 +1,8 @@
+[Unit]
+Description=Copy the Mojawid rules review answers to the home lab
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/Documents/GitHub/mojawid_backend/tools/rules_review/backup.sh

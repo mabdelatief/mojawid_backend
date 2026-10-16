@@ -1,0 +1,11 @@
+[Unit]
+Description=Mojawid rules review on 127.0.0.1:8300 (tajweed.codavvy.com/mojawid/ via cloudflared-tajweed)
+
+[Service]
+WorkingDirectory=%h/Documents/GitHub/mojawid_backend
+ExecStart=%h/Documents/GitHub/mojawid_backend/.venv/bin/uvicorn tools.rules_review.server:app --host 127.0.0.1 --port 8300 --no-access-log
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

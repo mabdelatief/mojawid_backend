@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily Mojawid rules review backup to the home lab
+
+[Timer]
+OnCalendar=*-*-* 02:40:00
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

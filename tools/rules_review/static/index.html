@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>مراجعة أحكام التلاوة — مُجَوِّد</title>
+  <link rel="stylesheet" href="/mojawid/static/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="top-inner">
+      <div>
+        <h1 id="title">مراجعة أحكام التلاوة</h1>
+        <p class="sub" id="riwaya"></p>
+      </div>
+      <div class="me">
+        <span id="me-name"></span>
+        <span class="progress" id="progress"></span>
+      </div>
+    </div>
+    <nav class="filters" aria-label="عرض البنود">
+      <button type="button" data-filter="all" class="on">كل البنود</button>
+      <button type="button" data-filter="todo">ما لم يُجَب عنه</button>
+      <button type="button" data-filter="correct">ما يحتاج تصحيحًا</button>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="intro" id="intro"></section>
+    <nav class="toc" id="toc" aria-label="الأقسام"></nav>
+    <div id="sections"><p class="loading">جارٍ التحميل…</p></div>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="/mojawid/static/app.js"></script>
+</body>
+</html>
