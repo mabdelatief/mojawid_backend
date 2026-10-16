@@ -21,7 +21,14 @@ import pytest
 
 from app.engine.pipeline.audio import as_saved, decode_audio
 from app.worker.service import WorkerService
-from tests.unit.engine.test_pipeline_golden import CASES, job_for, plain, without_new_fields
+from tests.unit.engine.test_pipeline_golden import (
+    CASES,
+    SIFAT_PAIRING_DIFFERS,
+    assert_covers,
+    job_for,
+    plain,
+    without_new_fields,
+)
 from tools.golden.pipeline_cases import audio_file
 
 pytestmark = pytest.mark.gpu
@@ -61,6 +68,9 @@ def test_gpu_result_matches_the_lab(service: WorkerService, path: Path) -> None:
     assert result.report["predicted_phonemes"] == golden["heard"]
     theirs = dict(golden["report"])
     theirs.pop("sifat_unreliable_probs")
-    assert without_new_fields(result.report) == theirs
+    ours = without_new_fields(result.report)
+    if golden["case"]["id"] in SIFAT_PAIRING_DIFFERS:  # as in the CPU goldens (audit C1)
+        assert_covers(ours.pop("sifat"), theirs.pop("sifat"))
+    assert ours == theirs
     assert result.detection == golden["detection"]
     assert plain(result.path) == golden["path"]

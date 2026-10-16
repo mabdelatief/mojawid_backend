@@ -124,14 +124,14 @@ def test_result_matches_the_lab(golden: dict[str, Any]) -> None:
     ours, theirs = without_new_fields(outcome.report), golden["report"]
     assert theirs.pop("sifat_unreliable_probs") == []  # dropped in the port: always empty here
     if golden["case"]["id"] in SIFAT_PAIRING_DIFFERS:
-        _assert_covers(ours["sifat"], theirs.pop("sifat"))
+        assert_covers(ours["sifat"], theirs.pop("sifat"))
         ours.pop("sifat")
     for key in theirs:
         assert ours[key] == theirs[key], key
     assert set(ours) == set(theirs)
 
 
-def _assert_covers(ours: list[dict[str, Any]], theirs: list[dict[str, Any]]) -> None:
+def assert_covers(ours: list[dict[str, Any]], theirs: list[dict[str, Any]]) -> None:
     """Both tables hold every expected letter and every heard letter exactly once, in order."""
     for side in ("ref", "pred"):
         assert [r[side] for r in ours if r[side]] == [r[side] for r in theirs if r[side]], side

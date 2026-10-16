@@ -45,6 +45,20 @@ upstream (the user's decision).
 | C5 hesitations | Open: teacher question 4, then a pause measurement |
 | C6 crash | Fixed, 9063e64 |
 
+**Seen end to end after the round** (Husary 54:2, 5:28, 30:54, 12:11, 10:59, over the Wi-Fi
+address; the GPU goldens all pass):
+- **The model was trained on labels from the unpatched phonetizer.** At the patch-3 places it
+  can still hear the old form. On 54:2 it heard the doubled raa as heavy (0.77, unsure). The
+  sifat table is shown, never counted, so this can't add a mistake. A stop on «أَوْ» / «لَوْ»
+  is different: a madd heard there is a counted mistake («وْ» → «وْ (مد ٤ حركات)»), correct
+  by the rule but at risk from the same training bias. No ayah ends there, so it only comes up
+  at a mid-ayah stop. Watch for it in bad-result reports.
+- **R10 is wider than the nine ayah ends.** On 30:54 Husary stops on «قُوَّةً» and «وَشَيْبَةً»
+  with a ha, and the model hears «تَا» (an alif); one of the two was counted. Any stop on a
+  taa marbuta with tanween fath is exposed. It's part of teacher question 5.
+- 10:59 «ءَآللَّهُ»: the lazim madd was heard at 4 and counted. A madd-length estimate (±1
+  haraka), not something the round changed.
+
 ## 1. Results that contradict a ruling or al-Shatibiyya
 
 | # | What happens today | Should be | Cause, where | Evidence |
