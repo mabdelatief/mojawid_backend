@@ -19,6 +19,7 @@ dependencies = [
 api = [
   "alembic>=1.17",
   "asyncpg>=0.30",
+  "httpx>=0.28",
   "sqlalchemy[asyncio]>=2.0.44",
 ]
 # The analysis worker: the model stack, pinned like tajweed_ai's (the reference). transformers 5

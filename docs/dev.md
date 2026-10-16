@@ -50,6 +50,22 @@ curl -X POST "localhost:8200/v1/analyze?mode=auto" -H "Authorization: Bearer moj
 The recording is the raw body (never a form upload) and is decoded in memory; nothing is written
 to disk or logged. In production the same app runs inside a Modal Server (phase 8).
 
+## Analyses end to end (API → worker)
+
+Run the worker (above) and the API (`--port 8100`) side by side. The API finds the worker at
+`MOJAWID_WORKER_URL` (default `http://127.0.0.1:8200`) with `MOJAWID_WORKER_TOKEN` (the same dev
+token by default). When the GPU is busy (the lab app holds about 4 GB after a long clip), run
+the worker on the CPU with `MOJAWID_WORKER_DEVICE=cpu`: about 1.5 s for a 6 s clip.
+
+```
+curl -X POST "localhost:8100/v1/analyses?mode=manual&sura=1&aya_start=2&client_id=$(uuidgen)" \
+     -H "X-Api-Key: mojawid-dev-key" -H "X-Install-Id: $(uuidgen)" \
+     -H "Content-Type: audio/mpeg" --data-binary @.cache/test_audio/Husary_64kbps/001002.mp3
+```
+
+Results are kept 24 h in the `analysis` table; the API purges them hourly, or run
+`.venv/bin/python -m app.maintenance` once.
+
 ## Tests
 
 ```

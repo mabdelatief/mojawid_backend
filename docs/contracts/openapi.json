@@ -1,6 +1,144 @@
 {
   "components": {
     "schemas": {
+      "AnalysisPending": {
+        "description": "GET /v1/analyses/{client_id} while it is still being analysed (202).",
+        "properties": {
+          "status": {
+            "const": "running",
+            "default": "running",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "AnalysisPending",
+        "type": "object"
+      },
+      "AnalysisResult": {
+        "description": "The result of one recording (docs/contracts/api.md, docs/model-and-analysis.md §4).",
+        "properties": {
+          "detection": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detection"
+          },
+          "duration_s": {
+            "title": "Duration S",
+            "type": "number"
+          },
+          "engine": {
+            "$ref": "#/components/schemas/EngineVersions"
+          },
+          "mode": {
+            "enum": [
+              "manual",
+              "auto"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Path"
+          },
+          "report": {
+            "additionalProperties": true,
+            "title": "Report",
+            "type": "object"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/Summary"
+          },
+          "text": {
+            "$ref": "#/components/schemas/TextUsed"
+          },
+          "timings_ms": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Timings Ms",
+            "type": "object"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/AnalysisWarning"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "word_times": {
+            "items": {
+              "$ref": "#/components/schemas/WordTime"
+            },
+            "title": "Word Times",
+            "type": "array"
+          }
+        },
+        "required": [
+          "mode",
+          "text",
+          "duration_s",
+          "summary",
+          "detection",
+          "path",
+          "warnings",
+          "word_times",
+          "report",
+          "engine",
+          "timings_ms"
+        ],
+        "title": "AnalysisResult",
+        "type": "object"
+      },
+      "AnalysisWarning": {
+        "properties": {
+          "code": {
+            "enum": [
+              "cut_in_speech",
+              "over_30s"
+            ],
+            "title": "Code",
+            "type": "string"
+          },
+          "edges": {
+            "items": {
+              "enum": [
+                "start",
+                "end"
+              ],
+              "type": "string"
+            },
+            "title": "Edges",
+            "type": "array"
+          },
+          "message_ar": {
+            "title": "Message Ar",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "edges",
+          "message_ar"
+        ],
+        "title": "AnalysisWarning",
+        "type": "object"
+      },
       "AyahTiming": {
         "description": "One ayah's audio and where each word is in it.",
         "properties": {
@@ -66,6 +204,34 @@
           "rules"
         ],
         "title": "EngineInfo",
+        "type": "object"
+      },
+      "EngineVersions": {
+        "properties": {
+          "model_revision": {
+            "title": "Model Revision",
+            "type": "string"
+          },
+          "quran_transcript": {
+            "title": "Quran Transcript",
+            "type": "string"
+          },
+          "rules": {
+            "title": "Rules",
+            "type": "string"
+          },
+          "segmenter_revision": {
+            "title": "Segmenter Revision",
+            "type": "string"
+          }
+        },
+        "required": [
+          "model_revision",
+          "segmenter_revision",
+          "quran_transcript",
+          "rules"
+        ],
+        "title": "EngineVersions",
         "type": "object"
       },
       "ErrorPayload": {
@@ -609,6 +775,30 @@
         "title": "ReferenceWord",
         "type": "object"
       },
+      "Summary": {
+        "properties": {
+          "exact_match": {
+            "title": "Exact Match",
+            "type": "boolean"
+          },
+          "mistakes": {
+            "description": "Counted mistakes (never uncertain places or variants).",
+            "title": "Mistakes",
+            "type": "integer"
+          },
+          "uncertain": {
+            "title": "Uncertain",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "mistakes",
+          "uncertain",
+          "exact_match"
+        ],
+        "title": "Summary",
+        "type": "object"
+      },
       "SurahInfo": {
         "properties": {
           "ayat": {
@@ -630,6 +820,90 @@
           "ayat"
         ],
         "title": "SurahInfo",
+        "type": "object"
+      },
+      "TextUsed": {
+        "properties": {
+          "aya_end": {
+            "title": "Aya End",
+            "type": "integer"
+          },
+          "aya_start": {
+            "title": "Aya Start",
+            "type": "integer"
+          },
+          "prefixes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Prefixes",
+            "type": "array"
+          },
+          "sura": {
+            "title": "Sura",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sura",
+          "aya_start",
+          "aya_end",
+          "prefixes"
+        ],
+        "title": "TextUsed",
+        "type": "object"
+      },
+      "WarmupAccepted": {
+        "description": "POST /v1/warmup (202). `pinged`: false when another warm-up pinged it moments ago.",
+        "properties": {
+          "pinged": {
+            "title": "Pinged",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "pinged"
+        ],
+        "title": "WarmupAccepted",
+        "type": "object"
+      },
+      "WordTime": {
+        "description": "A recited word's span in the user's recording (one entry per recital).",
+        "properties": {
+          "aya": {
+            "title": "Aya",
+            "type": "integer"
+          },
+          "end_s": {
+            "title": "End S",
+            "type": "number"
+          },
+          "segment": {
+            "title": "Segment",
+            "type": "integer"
+          },
+          "start_s": {
+            "title": "Start S",
+            "type": "number"
+          },
+          "sura": {
+            "title": "Sura",
+            "type": "integer"
+          },
+          "word": {
+            "title": "Word",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "segment",
+          "word",
+          "sura",
+          "aya",
+          "start_s",
+          "end_s"
+        ],
+        "title": "WordTime",
         "type": "object"
       }
     }
@@ -781,6 +1055,371 @@
         "summary": "Readyz",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/v1/analyses": {
+      "post": {
+        "description": "Analyse the recording sent as the body (≤ 2 MiB, any common format). Resending with the\nsame client_id returns the first result; it is computed once, hence POST with 200.",
+        "operationId": "post_analysis",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "mode",
+            "required": false,
+            "schema": {
+              "default": "manual",
+              "enum": [
+                "manual",
+                "auto"
+              ],
+              "title": "Mode",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sura",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 114,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sura"
+            }
+          },
+          {
+            "in": "query",
+            "name": "aya_start",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Aya Start"
+            }
+          },
+          {
+            "in": "query",
+            "name": "aya_end",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Aya End"
+            }
+          },
+          {
+            "in": "query",
+            "name": "istiaatha",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Istiaatha",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "basmala",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Basmala",
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Raum practice on («أتدرّب على الوقف بالرَّوم»).",
+            "in": "query",
+            "name": "raum",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Raum practice on («أتدرّب على الوقف بالرَّوم»).",
+              "title": "Raum",
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Reading settings as a JSON object, by name.",
+            "in": "query",
+            "name": "reading",
+            "required": false,
+            "schema": {
+              "default": "{}",
+              "description": "Reading settings as a JSON object, by name.",
+              "title": "Reading",
+              "type": "string"
+            }
+          },
+          {
+            "description": "A new UUID per attempt; reuse it to resend.",
+            "in": "query",
+            "name": "client_id",
+            "required": true,
+            "schema": {
+              "description": "A new UUID per attempt; reuse it to resend.",
+              "format": "uuid",
+              "title": "Client Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-install-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Install-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "audio/*": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid API key"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          }
+        },
+        "summary": "Post Analysis",
+        "tags": [
+          "analyses"
+        ]
+      }
+    },
+    "/v1/analyses/{client_id}": {
+      "get": {
+        "description": "The result (200), still running (202), the analysis' own error, or 404. Ask this after a\ntimeout, before sending the recording again.",
+        "operationId": "get_analysis",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "client_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Client Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-install-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Install-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisPending"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid API key"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          }
+        },
+        "summary": "Get Analysis",
+        "tags": [
+          "analyses"
         ]
       }
     },
@@ -1255,6 +1894,112 @@
         "summary": "Post Reference",
         "tags": [
           "text"
+        ]
+      }
+    },
+    "/v1/warmup": {
+      "post": {
+        "description": "Call when the Record screen opens. Answers at once; the worker starts in the background.",
+        "operationId": "post_warmup",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-install-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Install-Id"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid API key"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          }
+        },
+        "summary": "Post Warmup",
+        "tags": [
+          "analyses"
         ]
       }
     }

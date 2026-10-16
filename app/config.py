@@ -11,6 +11,7 @@ LogFormat = Literal["console", "json"]
 
 _DEV_API_KEY = "mojawid-dev-key"
 _DEV_IDENTITY_SECRET = "mojawid-dev-identity-secret"
+_DEV_WORKER_TOKEN = "mojawid-dev-worker-token"
 
 
 class Settings(BaseSettings):
@@ -60,6 +61,27 @@ class Settings(BaseSettings):
     # Most ayat a reciter may choose in manual mode (auto mode is limited by the 60 s recording).
     max_ayat_manual: int = 6
 
+    # --- The analysis worker (dev: this laptop's GPU; production: a Modal Server) ---
+    worker_url: str = "http://127.0.0.1:8200"
+    worker_token: str = _DEV_WORKER_TOKEN
+    worker_connect_timeout_s: float = 5.0
+    # how long one analysis may take once the worker has the recording; never retried after it
+    worker_read_timeout_s: float = 60.0
+    # how long to keep retrying while the worker starts (connection refused, 502/503/504)
+    worker_retry_window_s: float = 90.0
+    warmup_interval_s: float = 60.0  # at most one warm-up ping per API process in this time
+
+    # --- Analyses ---
+    analysis_result_ttl_hours: int = 24
+    analysis_stale_after_s: int = 300  # a claim older than this was left by a worker that died
+    analyses_per_install_hour: int = 30
+    analyses_per_install_day: int = 200
+    analyses_per_ip_hour: int = 120
+    analyses_per_day_total: int = 5000  # the GPU budget, all users together
+    warmups_per_install_hour: int = 20
+    warmups_per_ip_hour: int = 60
+    purge_interval_s: int = 3600
+
     @model_validator(mode="after")
     def _production_secrets(self) -> "Settings":
         """Refuse to start in production with a dev key or secret."""
@@ -68,6 +90,8 @@ class Settings(BaseSettings):
                 raise ValueError("MOJAWID_API_KEYS must be set (no dev key) in production")
             if self.identity_secret == _DEV_IDENTITY_SECRET:
                 raise ValueError("MOJAWID_IDENTITY_SECRET must be set in production")
+            if self.worker_token == _DEV_WORKER_TOKEN:
+                raise ValueError("MOJAWID_WORKER_TOKEN must be set in production")
         return self
 
 

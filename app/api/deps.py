@@ -6,6 +6,7 @@ from fastapi import Depends, Header, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.access.client import Client, identify
+from app.adapters.worker_client import WorkerClient
 from app.config import Settings, get_settings
 from app.db.session import get_db_session
 
@@ -26,3 +27,12 @@ async def require_client(
 
 
 ClientDep = Annotated[Client, Depends(require_client)]
+
+
+def get_worker(request: Request) -> WorkerClient:
+    """The worker client the lifespan created (tests override this)."""
+    worker: WorkerClient = request.app.state.worker
+    return worker
+
+
+WorkerDep = Annotated[WorkerClient, Depends(get_worker)]

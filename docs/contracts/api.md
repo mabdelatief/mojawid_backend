@@ -4,8 +4,9 @@ The contract between `mojawid_backend` and `mojawid_flutter`. The machine-readab
 `openapi.json` next to this file. A test fails if the running API drifts from it, so it changes
 only on purpose.
 
-**Status:** draft. Live in dev: health, meta, reference text, reciters, timings. Everything under
-"Coming" is the agreed design (`docs/architecture.md`), and may change in detail until it's built.
+**Status:** draft. Live in dev: health, meta, reference text, reciters, timings, warm-up and
+analyses. Everything under "Coming" is the agreed design (`docs/architecture.md`), and may change
+in detail until it's built.
 
 ## Conventions
 
@@ -41,11 +42,18 @@ only on purpose.
 | 400 | `invalid_reading_settings` | A reading setting the rules don't allow (e.g. munfasil 2). `details` is empty; the allowed values are in `/v1/meta` |
 | 401 | `invalid_api_key` | `X-Api-Key` missing or wrong |
 | 404 | `not_found` | No such reciter (or route) |
+| 404 | `analysis_not_found` | No analysis with this `client_id` for this install (or it's over 24 h old) |
+| 409 | `analysis_in_progress` | This `client_id` is being analysed right now. Ask `GET /v1/analyses/{client_id}` |
+| 413 | `audio_too_large` | The recording is over 2 MiB |
 | 422 | `invalid_request` | A field is missing or malformed. `details` lists which fields, never the submitted values |
-| 429 | `rate_limited` | Too many requests. Wait `Retry-After` seconds |
+| 422 | `audio_unreadable`, `audio_too_short`, `audio_too_long`, `ayah_not_recognised`, `no_recitation_heard` | The recording can't give a result (not audio, under 0.3 s, over 60 s, no ayah recognised in auto mode, nothing recited) |
+| 429 | `rate_limited` | Too many requests from this install or network. Wait `Retry-After` seconds |
 | 500 | `internal_error` | Our bug. Retry later |
+| 503 | `analysis_unavailable` | The analysis service didn't come up in time. Send it again shortly (same `client_id`) |
+| 503 | `analysis_busy` | Today's analyses for the whole service are used up. Wait `Retry-After` seconds |
+| 504 | `analysis_timeout` | The analysis took too long. Ask `GET /v1/analyses/{client_id}` before sending again |
 
-More codes come with analyses and reports (below).
+More codes come with reports (below).
 
 ## Live now
 
@@ -161,18 +169,65 @@ request.
    whole Quran, for one reciter. Shuraym also has no word timings at all for 12:76.
 5. **The ayah marker ۝** plays the whole `audio_url`.
 
-## Coming (agreed design, not built yet)
+### `POST /v1/warmup`
+Call when the Record screen opens. It answers at once (`202 {"pinged": true}`) and wakes the
+analysis worker in the background. In production the worker scales to zero and takes 15–40 s to
+start, so it's ready by the time the recording arrives. `pinged: false` means another warm-up
+woke it moments ago. Limits: 20 an hour per install, 60 per network.
 
-| Endpoint | Phase | Purpose |
-|---|---|---|
-| `POST /v1/warmup` | 6 | Call when the Record screen opens: wakes the analysis worker (cold start 15–40 s) while the user recites. Returns 202 at once |
-| `POST /v1/analyses` | 6 | **Body = the recorded audio file itself** (`Content-Type: audio/*`, ≤ 2 MiB, any common format incl. m4a). Fields go in the query: `client_id` (UUID per attempt), mode, text, openings, reading settings, raum. Returns the result. Idempotent on `client_id`: a resend returns the first result |
-| `GET /v1/analyses/{client_id}` | 6 | 200 result / 202 still running / 404. Ask this after a timeout, before re-uploading |
-| `POST /v1/reports` + `PUT /v1/reports/{id}/audio` | 7 | Bad-result report. Only with the user's explicit consent (`consent: true`); category, word, note, the result shown, reading settings |
+### `POST /v1/analyses`
+Analyse one recording.
+- **Body:** the recorded audio file itself, as the raw request body (not a form upload),
+  ≤ 2 MiB. Any common format: m4a (index at the end is fine), mp3, webm/opus, wav. Set
+  `Content-Type` to the file's audio type.
+- **Query fields:**
 
-**What the result will carry.** These fields are built and tested in the engine (phase 4); the
-endpoint arrives in phase 6. The lab's report fields are listed in `docs/model-and-analysis.md`
-§4. New for Mojawid:
+  | Field | Notes |
+  |---|---|
+  | `client_id` | **Required.** A new UUID for each attempt. Keep it until you have the result |
+  | `mode` | `manual` (default) or `auto` |
+  | `sura`, `aya_start`, `aya_end` | Manual: the text (`aya_end` defaults to `aya_start`; at most `limits.max_ayat_manual`, 6, ayat). Auto: optional, `sura` + `aya_end` as a hint (the text recited last) |
+  | `istiaatha`, `basmala` | `true` when recited before the text (manual mode) |
+  | `raum` | `true` when the raum practice is on («أتدرّب على الوقف بالرَّوم») |
+  | `reading` | The reading settings as a JSON object, by name → value, as in `/v1/reference` |
+
+- **Returns** `200` with the result (below). Typical time with a warm worker: 1–2 s for 30 s of
+  audio.
+- **Sending again is safe.** The result is kept for 24 h under (install, `client_id`). Sending
+  the same `client_id` again returns the first result without analysing it again, and doesn't
+  count against the limits. The same goes for an error that is the recording's own
+  (`audio_unreadable`, `ayah_not_recognised`, …): that error comes back again.
+- **After a timeout or a dropped connection,** don't upload again straight away. Ask
+  `GET /v1/analyses/{client_id}` first, then send again with the **same** `client_id` only if it
+  says 404. After `analysis_unavailable` or `analysis_timeout` nothing is kept, so sending again
+  runs it.
+- **Limits:** 30 analyses an hour and 200 a day per install, 120 an hour per network, and a
+  daily total for the whole service (`analysis_busy`).
+- **Privacy:** the recording is analysed in memory and discarded; it's never stored or logged.
+  What's kept for 24 h is the result.
+
+### `GET /v1/analyses/{client_id}`
+- `200`: the result, as `POST` returned it;
+- `202`: `{"status": "running"}`, still being analysed;
+- the analysis' own error (e.g. `422 audio_unreadable`);
+- `404 analysis_not_found`: unknown, sent by another install, or over 24 h old.
+
+### The result
+Top-level fields:
+- `mode`: `manual` or `auto`;
+- `text`: `sura`, `aya_start`, `aya_end`, `prefixes`, the text it was checked against;
+- `duration_s`;
+- `summary`: `mistakes` (counted), `uncertain`, `exact_match`;
+- `detection`: auto mode's candidates, otherwise null;
+- `path`: where the reciter stopped, went back or joined ayat;
+- `warnings`;
+- `word_times`;
+- `report`: the full analysis (`docs/model-and-analysis.md` §4);
+- `engine`: the model and rules versions;
+- `timings_ms`.
+
+**What's new in the result over the lab's report** (the lab's fields are listed in
+`docs/model-and-analysis.md` §4):
 
 - **On every error row:**
   - `sura`, `aya`, `word`: the place, with `word` indexed within the ayah as everywhere else.
@@ -204,6 +259,8 @@ endpoint arrives in phase 6. The lab's report fields are listed in `docs/model-a
 - **`warnings`:** `[{code, edges, message_ar}]`, with `code` either `cut_in_speech` (`edges`:
   `start` and/or `end`) or `over_30s`.
 
-**Analysis error codes, coming:** `audio_too_large` (413), `audio_unreadable`,
-`audio_too_short`, `audio_too_long`, `ayah_not_recognised` (422), `analysis_in_progress`
-(409), `analysis_unavailable` (503), `analysis_timeout` (504).
+## Coming (agreed design, not built yet)
+
+| Endpoint | Phase | Purpose |
+|---|---|---|
+| `POST /v1/reports` + `PUT /v1/reports/{id}/audio` | 7 | Bad-result report. Only with the user's explicit consent (`consent: true`); category, word, note, the result shown, reading settings |

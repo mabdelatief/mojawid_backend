@@ -90,3 +90,15 @@ async def test_unknown_route_uses_the_envelope(client: httpx.AsyncClient) -> Non
     r = await client.get("/nope")
     assert r.status_code == 404
     assert r.json()["error"]["code"] == "not_found"
+
+
+def test_request_lines_are_never_logged() -> None:
+    """They carry query strings: an analysis' reading settings."""
+    import logging
+
+    from app.config import Settings
+    from app.log_config import configure_logging
+
+    configure_logging(Settings())
+    for name in ("uvicorn.access", "httpx", "httpcore"):
+        assert logging.getLogger(name).getEffectiveLevel() >= logging.WARNING

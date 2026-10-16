@@ -1,6 +1,7 @@
 """An analysis request's fields and its result (the worker's, and later the API's)."""
 
 import json
+import uuid
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
@@ -89,3 +90,26 @@ class AnalysisResult(BaseModel):
     report: dict[str, Any]
     engine: EngineVersions
     timings_ms: dict[str, int]
+
+
+class AnalysisRequest(AnalysisQuery):
+    """The API's query for POST /v1/analyses: the worker's fields plus the app's id for this
+    attempt. A resend with the same client_id returns the first result (kept 24 h)."""
+
+    client_id: uuid.UUID = Field(description="A new UUID per attempt; reuse it to resend.")
+
+    def worker_params(self) -> dict[str, Any]:
+        """What the worker gets: everything but client_id, without empty fields."""
+        return {k: v for k, v in self.model_dump(exclude={"client_id"}).items() if v is not None}
+
+
+class AnalysisPending(BaseModel):
+    """GET /v1/analyses/{client_id} while it is still being analysed (202)."""
+
+    status: Literal["running"] = "running"
+
+
+class WarmupAccepted(BaseModel):
+    """POST /v1/warmup (202). `pinged`: false when another warm-up pinged it moments ago."""
+
+    pinged: bool

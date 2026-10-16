@@ -51,4 +51,6 @@ def configure_logging(settings: Settings) -> None:
     root.handlers.clear()
     root.addHandler(handler)
     root.setLevel(settings.log_level.upper())
-    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+    # Request lines carry query strings (an analysis' reading settings): never logged.
+    for name in ("uvicorn.access", "httpx", "httpcore"):
+        logging.getLogger(name).setLevel(logging.WARNING)

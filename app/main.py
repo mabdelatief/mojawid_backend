@@ -9,12 +9,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 
+from app.adapters.worker_client import WorkerClient
 from app.api.router import api_router
 from app.config import Settings, get_settings
-from app.db.session import dispose_engine
+from app.db.session import dispose_engine, get_session_maker
 from app.errors import register_exception_handlers
 from app.log_config import configure_logging
 from app.request_context import RequestIdMiddleware
+from app.services.maintenance_service import purge_forever
 from app.services.text_service import warm_up
 
 logger = logging.getLogger("mojawid.main")
@@ -33,9 +35,13 @@ def build_lifespan(settings: Settings) -> Callable[[FastAPI], AbstractAsyncConte
         app.state.settings = settings
         logger.info("Mojawid API starting", extra={"environment": settings.environment})
         await asyncio.to_thread(warm_up)  # the Quran and its special places, before traffic
+        app.state.worker = WorkerClient.from_settings(settings)
+        purge = asyncio.create_task(purge_forever(get_session_maker(settings), settings))
         try:
             yield
         finally:
+            purge.cancel()
+            await app.state.worker.close()
             await dispose_engine()
             logger.info("Mojawid API stopped")
 
