@@ -1,50 +1,69 @@
-"""Three places where Mojawid's result differs from the lab on purpose (user's decision,
-2026-10-16), found on the user's recording of al-Najm 23: a sifat row tagged by what the phonemes
-output heard, a ghunnah where none is due named as a tajweed mistake, and a leen madd written as a
-madd rather than a ghunnah."""
+"""Places where Mojawid's result differs from the lab on purpose (user's decisions, 2026-10-16),
+found on the user's recording of al-Najm 23 and in the 2026-10-16 audit: the sifat table paired by
+our own group alignment, a ghunnah where none is due named as a tajweed mistake, and a leen madd
+written as a madd rather than a ghunnah."""
 
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import Any
 
-import diff_match_patch as dmp
+import pytest
 
 from app.engine.pipeline.analysis.rows import GHUNNAH_OPERATION, ghunnah_state
-from app.engine.pipeline.analysis.sifat import _read_as_expected, heard_at
+from app.engine.pipeline.analysis.sifat import pair_groups, sifat_rows, tag_of
+from app.engine.pipeline.heard import Heard, HeardGroup, SifaValue
+from app.engine.text.letter_sifat import SIFAT_LEVELS
+from app.engine.text.moshaf import build_moshaf
 from app.engine.text.qt import alph
 from app.engine.text.readable import SHADDA, describe
+from app.engine.text.reference import build_reference_from_structure
+from app.engine.text.structure import TextSelection, default_structure
 
 P = alph.phonetics
+M = build_moshaf()
 
 
-def _diffs(ref: str, heard: str) -> list[tuple[int, str]]:
-    diffs: list[tuple[int, str]] = dmp.diff_match_patch().diff_main(ref, heard)
-    return diffs
+def _perfect(sura: int, aya: int) -> tuple[Any, list[dict[str, Any]]]:
+    """The sifat table for a perfect recitation of an ayah: heard script and sifat as expected."""
+    ref = build_reference_from_structure(default_structure(TextSelection(sura, aya), M), M)
+    sifat = [
+        HeardGroup(s.phonemes, {lv: SifaValue(getattr(s, lv), 0.99, 1) for lv in SIFAT_LEVELS})
+        for s in ref.phonetic.sifat
+    ]
+    sure = {lv: [True] * len(sifat) for lv in SIFAT_LEVELS}
+    heard = Heard(
+        text=ref.phonetic.phonemes,
+        probs=[],
+        ids=[],
+        sifat=sifat,
+        group_frames=[],
+        sure=sure,
+        gaps={},
+        n_frames=0,
+    )
+    return ref, sifat_rows(heard, ref)
 
 
-def test_heard_at_follows_the_diff() -> None:
-    ref = "زَلَللَااهُ"
-    assert heard_at(_diffs(ref, ref), 4, 7) == ref[4:7]
-    # an insertion right after a span belongs to it, not to the next one
-    ref, heard = "كُمسَ", "كُمممسَ"
-    diffs = _diffs(ref, heard)
-    assert heard_at(diffs, 2, 3) == "ممم"
-    assert heard_at(diffs, 3, 5) == "سَ"
+@pytest.mark.parametrize(
+    ("sura", "aya"), [(53, 23), (1, 1), (2, 255), (3, 18), (24, 35), (112, 2), (59, 23)]
+)
+def test_a_perfect_recitation_gives_a_clean_sifat_table(sura: int, aya: int) -> None:
+    # the lam of «ٱللَّهُ» was paired with the lam before it (quran-muaalem segment_groups): a
+    # row lost and a made-up tafkheem mismatch on a perfect reading of 53:23
+    ref, rows = _perfect(sura, aya)
+    assert len(rows) == len(ref.phonetic.sifat)
+    assert all(r["tag"] == "exact" and r["ref"] == r["pred"] for r in rows)
+    assert not [lv for r in rows for lv, v in r["attrs"].items() if v["mismatch"]]
 
 
-def test_a_row_read_exactly_as_expected_is_exact() -> None:
-    # the doubled lam of «ٱللَّهُ»: the sifat outputs split it as one lam, the phonemes output heard
-    # it as expected
-    ref = "ءَںںںزَلَللَااهُ"
-    starts = [0, 2, 5, 7, 9, 12, 14]  # ءَ ںںں زَ لَ للَ اا هُ
-    row = SimpleNamespace(ref="للَ", out="لَ", ref_idx=4)
-    assert _read_as_expected(row, "changed", _diffs(ref, ref), starts)
-    # a meem heard held where a single one was due is still a difference
-    ref, heard = "كُمسَ", "كُمممسَ"
-    row = SimpleNamespace(ref="م", out="ممم", ref_idx=1)
-    assert not _read_as_expected(row, "changed", _diffs(ref, heard), [0, 2, 3])
-    # rows the heard side adds have no expected stretch to compare
-    assert not _read_as_expected(SimpleNamespace(ref="", out="م", ref_idx=None), "insert", [], [0])
+def test_pair_groups() -> None:
+    assert pair_groups(["لَ", "للَ", "اا"], ["لَ", "للَ", "اا"]) == [(0, 0), (1, 1), (2, 2)]
+    assert pair_groups(["كُ", "م", "سَ"], ["كُ", "ممم", "سَ"]) == [(0, 0), (1, 1), (2, 2)]
+    assert pair_groups(["ءِ", "ييَ", "كَ"], ["ءِ", "كَ"]) == [(0, 0), (1, None), (2, 1)]
+    assert pair_groups(["بَ"], ["بَ", "هْ"]) == [(0, 0), (None, 1)]
+    assert tag_of("اااا", "ااااا") == "exact"  # a madd length is judged by the error rows
+    assert tag_of("للَ", "لَ") == "changed"
 
 
 def _explained(exp: str, got: str) -> SimpleNamespace:

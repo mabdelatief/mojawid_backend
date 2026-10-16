@@ -37,6 +37,11 @@ NEW_ROW_KEYS = (
     "expected_harakat",
     "heard_harakat",
 )
+# Mojawid pairs the sifat table by its own alignment of whole letter groups (audit 2026-10-16,
+# C1): the lab's pairing matched a letter with its neighbour. It gives the lab's rows exactly on
+# every golden except a recording of another text, where any pairing of unrelated letters is
+# arbitrary; there only the coverage is checked (every expected and heard letter exactly once).
+SIFAT_PAIRING_DIFFERS = {"wrong_text_manual"}
 
 
 def _vocab() -> tuple[dict[str, dict[int, str]], dict[str, dict[int, str]]]:
@@ -118,9 +123,18 @@ def test_result_matches_the_lab(golden: dict[str, Any]) -> None:
     assert plain(outcome.path) == golden["path"]
     ours, theirs = without_new_fields(outcome.report), golden["report"]
     assert theirs.pop("sifat_unreliable_probs") == []  # dropped in the port: always empty here
+    if golden["case"]["id"] in SIFAT_PAIRING_DIFFERS:
+        _assert_covers(ours["sifat"], theirs.pop("sifat"))
+        ours.pop("sifat")
     for key in theirs:
         assert ours[key] == theirs[key], key
     assert set(ours) == set(theirs)
+
+
+def _assert_covers(ours: list[dict[str, Any]], theirs: list[dict[str, Any]]) -> None:
+    """Both tables hold every expected letter and every heard letter exactly once, in order."""
+    for side in ("ref", "pred"):
+        assert [r[side] for r in ours if r[side]] == [r[side] for r in theirs if r[side]], side
 
 
 def test_warnings(golden: dict[str, Any]) -> None:

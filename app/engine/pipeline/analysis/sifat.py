@@ -1,28 +1,28 @@
 """The sifat table: one row per aligned letter group, expected against heard on all 10 attributes.
 
-Ported from tajweed_ai `muaalem_lab/analysis.py` (sifat_rows, _label, SIFAT_LEVEL_AR), using
-quran-muaalem's own alignment (segment_groups on a diff_match_patch diff). Missing reference
-letters are kept as rows. The lab's `_unreliable_levels` (for analyses made before its own
-decoder) never applies to our decoder and is dropped.
+Ported from tajweed_ai `muaalem_lab/analysis.py` (sifat_rows, _label, SIFAT_LEVEL_AR). Missing
+reference letters are kept as rows. The lab's `_unreliable_levels` (for analyses made before its
+own decoder) never applies to our decoder and is dropped.
 
 New for Mojawid (user's decision, 2026-10-15): `allowed`. Where the rules count every value as
 correct at that letter (rules.both_valid: e.g. the raa of «مِصْرَ» at a stop), a differing value
 is marked allowed, so the app shows it as correct, the way allowed madd lengths are never counted.
 
-Fixed in Mojawid (user's decision, 2026-10-16): a row's tag follows what the main (phonemes)
-output heard on that stretch, so a letter read exactly as expected isn't shown as «حرف مختلف».
-Known defect (audit 2026-10-16, docs/research/README.md C1): the cause is segment_groups'
-merge_same_phoneme_group, which can pair a letter with its neighbour (the lam of «ٱللَّهُ» with
-the lam before it); the attributes are then compared against the wrong letter. To be redone.
+Fixed in Mojawid (audit 2026-10-16, docs/research/README.md C1): the rows are paired by our own
+alignment of whole letter groups, expected against heard. The lab used quran-muaalem's
+segment_groups, whose merge_same_phoneme_group pairs a letter with its neighbour whenever one
+group's text is inside the next (the lam of «ٱللَّهُ» with the lam before it): on a perfect
+recitation it dropped 1,200 rows over the whole Quran and showed 227 made-up tafkheem
+mismatches.
 """
 
 from typing import Any
 
-import diff_match_patch as dmp
+import Levenshtein
 
 from app.engine.pipeline.analysis.words import Row
 from app.engine.pipeline.heard import Heard
-from app.engine.pipeline.qm import SIFAT_ATTR_TO_ARABIC_WITHOUT_BRACKETS, segment_groups
+from app.engine.pipeline.qm import SIFAT_ATTR_TO_ARABIC_WITHOUT_BRACKETS
 from app.engine.text.groups import MADD_CHARS, RefGroup, both_valid_for, ref_groups
 from app.engine.text.letter_sifat import SIFAT_LEVELS
 from app.engine.text.readable import describe
@@ -48,34 +48,29 @@ def label(v: str | None) -> dict[str, str] | None:
     return {"en": v, "ar": SIFAT_ATTR_TO_ARABIC_WITHOUT_BRACKETS.get(v, v)}
 
 
-def _tag(g: Any) -> str:
-    tag = str(g.get_tag())
-    if tag == "partial":
-        return "exact" if g.ref[0] in MADD_CHARS else "changed"  # same madd letter, other length
-    return tag
+def tag_of(ref: str, out: str) -> str:
+    """exact / changed / insert / delete; the same madd letter at another length is exact (its
+    length is judged by the error rows, not the sifat table)."""
+    if ref == out:
+        return "exact"
+    if not out:
+        return "delete"
+    if not ref:
+        return "insert"
+    return "exact" if ref[0] == out[0] and ref[0] in MADD_CHARS else "changed"
 
 
-def heard_at(diffs: list[tuple[int, str]], start: int, end: int) -> str:
-    """The heard text the diff lines up with expected[start:end]; an insertion right after the
-    span counts toward it (as the row alignment gives it to that row)."""
-    out, pos = [], 0
-    for op, text in diffs:
-        if op == dmp.diff_match_patch.DIFF_INSERT:
-            if start < pos <= end:
-                out.append(text)
-            continue
-        a, pos = pos, pos + len(text)
-        if op == dmp.diff_match_patch.DIFF_EQUAL and max(a, start) < min(pos, end):
-            out.append(text[max(a, start) - a : min(pos, end) - a])
-    return "".join(out)
-
-
-def _read_as_expected(g: Any, tag: str, diffs: list[tuple[int, str]], starts: list[int]) -> bool:
-    """A changed or missing row whose stretch the phonemes output heard exactly as expected."""
-    if tag not in ("changed", "delete") or g.ref_idx is None:
-        return False
-    start = starts[g.ref_idx]
-    return bool(heard_at(diffs, start, start + len(g.ref)) == g.ref)
+def pair_groups(ref: list[str], heard: list[str]) -> list[tuple[int | None, int | None]]:
+    """Expected and heard letter groups lined up by a minimal edit of whole groups: equal groups
+    pair one to one, changed runs pair by position, and the rest are missing or extra."""
+    codes: dict[str, str] = {}
+    a = "".join(codes.setdefault(g, chr(0xE000 + len(codes))) for g in ref)
+    b = "".join(codes.setdefault(g, chr(0xE000 + len(codes))) for g in heard)
+    pairs: list[tuple[int | None, int | None]] = []
+    for _, i1, i2, j1, j2 in Levenshtein.opcodes(a, b):
+        for k in range(max(i2 - i1, j2 - j1)):
+            pairs.append((i1 + k if i1 + k < i2 else None, j1 + k if j1 + k < j2 else None))
+    return pairs
 
 
 def _attr(level: str, ctx: tuple[Any, Any, Heard, Any], allowed: bool) -> dict[str, Any]:
@@ -108,28 +103,19 @@ def _allowed_levels(ref: Reference, groups: list[RefGroup], ref_idx: int | None)
 def sifat_rows(heard: Heard, ref: Reference) -> list[Row]:
     """One row per aligned letter group (heard must have sifat)."""
     exp_sifat = ref.phonetic.sifat
-    diffs = dmp.diff_match_patch().diff_main(ref.phonetic.phonemes, heard.text)
-    aligned = segment_groups(
-        ref_groups=[s.phonemes for s in exp_sifat],
-        groups=[s.phonemes_group for s in heard.sifat],
-        diffs=diffs,
-    )
+    ref_g = [s.phonemes for s in exp_sifat]
+    heard_g = [s.phonemes_group for s in heard.sifat]
     groups = ref_groups(ref)
-    starts = [0]
-    for s in exp_sifat:
-        starts.append(starts[-1] + len(s.phonemes))
     rows = []
-    for g in aligned:
-        exp = exp_sifat[g.ref_idx] if g.ref_idx is not None else None
-        got = heard.sifat[g.out_idx] if g.out_idx is not None else None
-        allowed = _allowed_levels(ref, groups, g.ref_idx)
-        ctx = (exp, got, heard, g.out_idx)
-        tag, pred = _tag(g), g.out
-        if _read_as_expected(g, tag, diffs, starts):
-            tag, pred = "exact", g.ref
+    for ri, hi in pair_groups(ref_g, heard_g):
+        r, o = (ref_g[ri] if ri is not None else ""), (heard_g[hi] if hi is not None else "")
+        exp = exp_sifat[ri] if ri is not None else None
+        got = heard.sifat[hi] if hi is not None else None
+        allowed = _allowed_levels(ref, groups, ri)
+        ctx = (exp, got, heard, hi)
         rows.append(
-            {"tag": tag, "ref": g.ref, "pred": pred, "ref_text": describe(g.ref),
-             "pred_text": describe(pred), "ref_idx": g.ref_idx,
+            {"tag": tag_of(r, o), "ref": r, "pred": o, "ref_text": describe(r),
+             "pred_text": describe(o), "ref_idx": ri,
              "attrs": {lv: _attr(lv, ctx, lv in allowed) for lv in SIFAT_LEVELS}}
         )  # fmt: skip
     return rows
