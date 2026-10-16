@@ -1,6 +1,12 @@
-# Dev only: the database. The API and the worker run on the host (uv) during development.
-# Object storage is the real Linode bucket (docs/recitations.md), so there's no local S3.
-# Production packaging comes later (phase 9).
+# Dev stack on this laptop: Postgres, the API and the analysis worker on the GPU. The API is
+# published on the Wi-Fi address (MOJAWID_LAN_IP, set in the git-ignored secrets file) and on
+# 127.0.0.1, never on 0.0.0.0, so it stays off Tailscale and ZeroTier. The worker and Postgres
+# are on 127.0.0.1 only. Object storage is the real Linode buckets. Production packaging is
+# phase 9.
+#
+#   docker compose up -d --build        # start or update
+#   docker compose logs -f mojawid_api  # follow
+#   docker compose down                 # stop (the database volume stays)
 name: mojawid
 
 services:
@@ -20,6 +26,53 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+    restart: unless-stopped
+
+  mojawid_worker:
+    build:
+      context: .
+      dockerfile: docker/worker.Dockerfile
+    image: mojawid_worker:dev
+    container_name: mojawid_worker
+    # the host's Hugging Face cache is private to its owner, so the worker runs as that user
+    user: "${MOJAWID_UID:-1000}:${MOJAWID_GID:-1000}"
+    environment:
+      MOJAWID_LOG_FORMAT: json
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ${HOME}/.cache/huggingface:/hf:ro
+    ports:
+      - "127.0.0.1:8200:8200"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  mojawid_api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    image: mojawid_api:dev
+    container_name: mojawid_api
+    environment:
+      MOJAWID_DATABASE_URL: postgresql+asyncpg://mojawid:mojawid@mojawid_postgres:5432/mojawid
+      MOJAWID_WORKER_URL: http://mojawid_worker:8200
+      MOJAWID_LOG_FORMAT: json
+    env_file:
+      - path: .env
+        required: false
+    ports:
+      - "${MOJAWID_LAN_IP:?set MOJAWID_LAN_IP (the Wi-Fi address) in the secrets file}:8100:8100"
+      - "127.0.0.1:8100:8100"
+    depends_on:
+      mojawid_postgres:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:

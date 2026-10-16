@@ -1,0 +1,12 @@
+# Only pyproject, the lock, vendor/ (the patched quran-transcript) and app/ go into the images.
+.git
+.venv
+.cache
+.claude
+.env
+**/__pycache__
+vendor/quran-transcript/build
+**/*.egg-info
+tests
+tools
+docs

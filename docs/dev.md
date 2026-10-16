@@ -1,8 +1,44 @@
 # Running Mojawid's backend in dev
 
-Dev runs on this laptop: Postgres in docker compose, and the API on the host through `uv`.
-Object storage is the real Linode bucket; there's no local S3. The GPU worker joins in phase 5.
-There is no staging; production packaging comes last (`docs/architecture.md`).
+Dev runs on this laptop. There is no staging; production packaging comes last
+(`docs/architecture.md`). Object storage is the real Linode buckets; there's no local S3.
+
+## The running dev stack (for the app)
+
+`docker compose up -d --build` runs three containers, all `restart: unless-stopped`, so they
+come back after a reboot:
+- `mojawid_postgres`;
+- `mojawid_api`: on start it migrates the schema, then serves on :8100;
+- `mojawid_worker`: the models on this laptop's GPU, which it has to itself. The lab app
+  (`muaalem-app`) is stopped and disabled to free the GPU (2026-10-16). Next to it, a recording
+  over about 20 s ran out of GPU memory. Alone it peaks at 5.3 GB of 8 GB on a 53 s clip
+  (1.6 s).
+
+**For the Flutter app, on the same Wi-Fi:**
+
+| | |
+|---|---|
+| Base URL | `http://192.168.1.17:8100` (this laptop's Wi-Fi address; `MOJAWID_LAN_IP` in the secrets file) |
+| `X-Api-Key` | `mojawid-dev-key` |
+| `X-Install-Id` | a UUID the app makes on first launch |
+| Contract | `docs/contracts/api.md`, `docs/contracts/openapi.json` |
+| Admin page | `http://192.168.1.17:8100/admin`, user `admin`, password in `~/.config/mojawid/admin-password` on this laptop |
+
+- **Reachability:** the API answers on the Wi-Fi address and on 127.0.0.1 only. It isn't on
+  Tailscale or ZeroTier, and nothing is public.
+- **Plain HTTP:** the Android app needs cleartext allowed for this host in dev, and iOS an ATS
+  exception.
+- **Address changes:** if the router gives the laptop another address, update `MOJAWID_LAN_IP`
+  and run `docker compose up -d`. A DHCP reservation on the router avoids that.
+
+```
+docker compose ps                       # state and health
+docker compose logs -f mojawid_api      # the API's log (JSON; never audio or query strings)
+docker compose up -d --build            # after a code change
+docker compose down                     # stop all three (the database volume stays)
+```
+
+The sections below run the API or the worker on the host instead, for development.
 
 ## First time
 
