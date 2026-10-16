@@ -116,7 +116,14 @@ plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
 # Third-party packages that ship no type information.
-module = ["asyncpg.*", "quran_transcript.*", "quran_muaalem.*", "diff_match_patch.*", "Levenshtein.*", "transformers.*"]
+module = ["asyncpg.*", "quran_transcript.*", "quran_muaalem.*", "diff_match_patch.*", "Levenshtein.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# transformers ships partial annotations (from_pretrained has none): treated as untyped, like the
+# packages above, and only ever used in app/engine/pipeline/models/.
+module = ["transformers", "transformers.*"]
+follow_imports = "skip"
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
@@ -124,5 +131,8 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 asyncio_default_test_loop_scope = "session"
 testpaths = ["tests"]
-markers = ["slow: whole-Quran sweeps; run with -m slow"]
-addopts = "-m 'not slow'"
+markers = [
+  "slow: whole-Quran sweeps; run with -m slow",
+  "gpu: the real models on the GPU; run with -m gpu",
+]
+addopts = "-m 'not slow and not gpu'"

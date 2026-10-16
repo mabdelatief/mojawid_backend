@@ -25,3 +25,15 @@ class NoRecitationHeard(AnalysisError):
 
 class AyahNotRecognised(AnalysisError):
     code = "ayah_not_recognised"
+
+
+class AudioUnreadable(AnalysisError):
+    code = "audio_unreadable"
+
+
+class AudioTooShort(AnalysisError):
+    code = "audio_too_short"
+
+
+class AudioTooLong(AnalysisError):
+    code = "audio_too_long"

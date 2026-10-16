@@ -31,6 +31,25 @@ the database. `/v1` routes need `X-Api-Key: mojawid-dev-key` and an `X-Install-I
 contract is `docs/contracts/api.md`; after changing a route, run
 `.venv/bin/python -m tools.export_openapi` (a test checks the snapshot).
 
+## The worker (analysis, on this laptop's GPU)
+
+```
+uv sync --extra api --extra worker
+HF_HUB_OFFLINE=1 .venv/bin/uvicorn app.worker.main:app --port 8200
+```
+
+It loads both pinned models from the local Hugging Face cache (never the hub), next to anything
+else on the GPU (about 2.5 GB). Only the API calls it, with `Authorization: Bearer
+mojawid-dev-worker-token` (`MOJAWID_WORKER_TOKEN`):
+
+```
+curl -X POST "localhost:8200/v1/analyze?mode=auto" -H "Authorization: Bearer mojawid-dev-worker-token" \
+     --data-binary @recording.m4a
+```
+
+The recording is the raw body (never a form upload) and is decoded in memory; nothing is written
+to disk or logged. In production the same app runs inside a Modal Server (phase 8).
+
 ## Tests
 
 ```
@@ -39,7 +58,8 @@ contract is `docs/contracts/api.md`; after changing a route, run
 ```
 
 The DB tests skip, with a reason, when the dev Postgres isn't running. `-m slow` runs the
-whole-Quran sweep (every ayah builds a consistent reference, about 25 s). They rebuild
+whole-Quran sweep (every ayah builds a consistent reference, about 25 s). `-m gpu` runs the
+L2 check: the real models on the GPU against the lab's 22 pipeline goldens (about 15 s). They rebuild
 `mojawid_test` from the migrations once per run and roll each test back.
 
 ## Goldens: the port against tajweed_ai
