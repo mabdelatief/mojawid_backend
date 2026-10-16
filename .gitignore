@@ -1,3 +1,6 @@
 .cache/
 __pycache__/
 .venv/
+# build leftovers from installing the vendored package
+vendor/quran-transcript/build/
+*.egg-info/
