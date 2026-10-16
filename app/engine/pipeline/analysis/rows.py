@@ -4,9 +4,14 @@ Ported from tajweed_ai `muaalem_lab/analysis.py` (_rules, _is_false_alarm, _ghun
 _valid_variant, _error_row). explain_error has no ghunnah rule, so a held ghunnah heard at the
 wrong length is named here.
 
-New in Mojawid (user's decision, 2026-10-16): "unexpected", a ghunnah held on a noon or meem where
-none is due (a meem sakin hummed at a stop). explain_error calls it an inserted letter, the most
-serious kind; it is a tajweed mistake.
+New in Mojawid (user's decision, 2026-10-16): "unexpected", a ghunnah held on a sakin noon or meem
+where none is due (a meem sakin hummed at a stop, or hidden where izhar is due). explain_error
+calls it an inserted letter, the most serious kind; it is a tajweed mistake.
+
+Fixed in Mojawid (audit 2026-10-16): a madd row is a false alarm only when expected and heard differ
+in the madd letters' count alone, so a missing sakt (idraj at «مَّرْقَدِنَا») or a stray haraka
+after a madd is no longer hidden (R3); "unexpected" only for a sakin noon/meem (C3); a clear noon
+where ikhfa is due is izhar whatever its length (C4).
 """
 
 from typing import Any
@@ -29,7 +34,10 @@ GHUNNAH_OPERATION = {
     "short": "delete", "long": "insert", "missing": "replace", "izhar": "replace",
     "unexpected": "insert",
 }  # fmt: skip
-PLAIN_NASALS = alph.phonetics.noon + alph.phonetics.meem
+P = alph.phonetics
+HIDDEN_FORM = {P.noon: P.noon_mokhfah, P.meem: P.meem_mokhfah}
+# the letters a madd or leen length is written with; what else a madd group holds must match
+MADD_RUN_LETTERS = P.alif + P.waw_madd + P.yaa_madd + P.alif_momala + P.waw + P.yaa
 
 
 def rule_dicts(rules: Any) -> list[dict[str, Any]]:
@@ -47,15 +55,23 @@ def is_false_alarm(e: Any) -> bool:
     if e.error_type != "tajweed" or e.missing_tajweed_rules:
         return False
     if e.expected_len is not None and e.predicted_len is not None:
-        return bool(e.expected_len == e.predicted_len)
+        return bool(e.expected_len == e.predicted_len) and _rest_equal(e)
     return False
 
 
+def _rest_equal(e: Any) -> bool:
+    """Expected and heard are the same once the madd letters are set aside: nothing else (a sakt,
+    a haraka) was lost or added in the group."""
+    exp, got = e.expected_ph or "", e.preditected_ph or ""
+    strip = str.maketrans("", "", MADD_RUN_LETTERS)
+    return exp.translate(strip) == got.translate(strip)
+
+
 def unexpected_ghunnah(exp: str, got: str) -> bool:
-    """A single noon or meem expected, and the same letter heard held as a ghunnah."""
-    if not exp or exp[0] not in PLAIN_NASALS or run_length(exp, exp[0]) != 1:
+    """A sakin noon or meem expected (no haraka), heard held as a ghunnah or hidden."""
+    if exp not in HIDDEN_FORM:
         return False
-    return run_length(got, exp[0]) >= GHUNNAH_RUN
+    return run_length(got, exp) >= GHUNNAH_RUN or run_length(got, HIDDEN_FORM[exp]) >= 1
 
 
 def ghunnah_state(e: Any, uthmani: str) -> str | None:
@@ -67,7 +83,9 @@ def ghunnah_state(e: Any, uthmani: str) -> str | None:
     want = ghunnah_run(exp, uthmani)
     if not want:
         return "unexpected" if unexpected_ghunnah(exp, got) else None
-    clear = GHUNNAH_HEARD_AS.get(exp[0], exp[0])[1:]  # the clear noon or meem of a hidden one
+    if exp[0] == P.noon_mokhfah and run_length(got, P.noon) and not run_length(got, exp[0]):
+        return "izhar"  # a clear noon, held or not, where ikhfa or iqlab was due
+    clear = GHUNNAH_HEARD_AS.get(exp[0], exp[0])[1:]  # the clear meem of a hidden one
     if clear and run_length(got, clear) == 1 and run_length(got, exp[0]) == 0:
         # a single clear noon or meem where ikhfa or iqlab was due: izhar, not a short ghunnah
         # (the model confuses these often: the paper reports F1 0.45 for ikhfa)
@@ -114,6 +132,10 @@ def valid_variant(e: Any, rules: list[Any]) -> dict[str, str] | None:
     return None
 
 
+def _is_leen(rules: Any) -> bool:
+    return any(r.name.en == "Leen Madd" for r in rules or [])
+
+
 def _rules_from_reference(e: Any, ref: Reference) -> list[Any]:
     """explain_error marks a deleted group "tajweed" when the reference has a rule there but
     doesn't attach the rule; take it from the reference mappings."""
@@ -139,7 +161,8 @@ def error_row(i: int, e: Any, ref: Reference, span: tuple[int, int]) -> Row:
         "uthmani_text": ref.uthmani[s:t], "word_index": word_index(ref.uthmani, e.uthmani_pos[0]),
         "segment": ref.segment_at(e.uthmani_pos[0]), "ph_pos": list(e.ph_pos),
         "expected_ph": e.expected_ph, "predicted_ph": e.preditected_ph,  # sic, upstream spelling
-        "expected_text": describe(e.expected_ph), "heard_text": describe(e.preditected_ph),
+        "expected_text": describe(e.expected_ph, leen=_is_leen(rules)),
+        "heard_text": describe(e.preditected_ph, leen=_is_leen(rules)),
         "expected_len": e.expected_len, "predicted_len": e.predicted_len,
         "rules": rule_dicts(rules), "inserted_rules": rule_dicts(e.inserted_tajweed_rules),
         "replaced_rules": rule_dicts(e.replaced_tajweed_rules),

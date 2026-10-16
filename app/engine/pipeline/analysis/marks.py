@@ -39,9 +39,17 @@ def mark_raum(errors: list[Any], rows: list[Row], ref: Reference) -> None:
 
 
 def overlaps(a: int, b: int, ra: int, rb: int) -> bool:
-    """Two reference spans share a place; an empty span (an insertion) is a point."""
+    """Two reference spans share a place; an empty span (an insertion) is a point. An insertion
+    that only touches a row's edge belongs to its neighbour, not to that row (audit 2026-10-16,
+    C8: otherwise a sure mistake next to an unsure insertion became uncertain)."""
     lo, hi = max(a, ra), min(b, rb)
-    return lo < hi or (lo == hi and (a == b or ra == rb))
+    if lo < hi:
+        return True
+    if lo != hi:
+        return False
+    if a == b:  # the row itself is an insertion at this point
+        return True
+    return ra == rb and a < ra < b
 
 
 def mark_doubt(rows: list[Row], diff: list[Row], heard: Heard) -> None:

@@ -72,12 +72,24 @@ def _explained(exp: str, got: str) -> SimpleNamespace:
 
 def test_a_ghunnah_where_none_is_due_is_unexpected() -> None:
     assert ghunnah_state(_explained(P.meem, P.meem * 3), "م") == "unexpected"
-    assert ghunnah_state(_explained(P.noon + P.fatha, P.noon * 3 + P.fatha), "نَ") == "unexpected"
+    # a sakin noon or meem read hidden where izhar is due (audit C4)
+    assert ghunnah_state(_explained(P.noon, P.noon_mokhfah * 3), "نْ") == "unexpected"
+    assert ghunnah_state(_explained(P.meem, P.meem_mokhfah * 3), "مْ") == "unexpected"
+    # a voweled noon read doubled is a haraka/letter matter, not a ghunnah where none is due (C3)
+    assert ghunnah_state(_explained(P.noon + P.fatha, P.noon * 3 + P.fatha), "نَ") is None
     assert GHUNNAH_OPERATION["unexpected"] == "insert"
     # a meem doubled but not held is not a ghunnah
     assert ghunnah_state(_explained(P.meem, P.meem * 2), "م") is None
     # a held ghunnah heard short is still "short"
     assert ghunnah_state(_explained(P.noon * 3 + P.fatha, P.noon + P.fatha), "نَّ") == "short"
+
+
+def test_ikhfa_heard_as_a_clear_noon_is_izhar_whatever_its_length() -> None:
+    ikhfa = P.noon_mokhfah * 3
+    assert ghunnah_state(_explained(ikhfa, P.noon), "ن") == "izhar"
+    assert ghunnah_state(_explained(ikhfa, P.noon * 3), "ن") == "izhar"  # held: still izhar (C4)
+    # the meem of iqlab / ikhfa shafawi: a clear meem held is the other correct form (ruling #6)
+    assert ghunnah_state(_explained(P.meem_mokhfah * 3, P.meem * 3), "ۢ") is None
 
 
 def test_leen_madd_is_written_as_a_madd() -> None:

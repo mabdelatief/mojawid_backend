@@ -31,10 +31,10 @@ GHUNNAH_LETTERS: str = (
     + alph.phonetics.meem_mokhfah + alph.phonetics.yaa + alph.phonetics.waw
 )  # fmt: skip
 IDGHAM_LETTERS: str = alph.phonetics.yaa + alph.phonetics.waw
-# a clear noon or meem held in place of the hidden one still carries the ghunnah's length (a
-# full-length clear meem in iqlab is an accepted reading, see moshaf meem_mokhfah)
+# a clear meem held in place of the hidden one still carries the ghunnah's length: lips closed or
+# a slight gap are both correct (the teacher's ruling; moshaf meem_mokhfah). Not the noon: a clear
+# noon where ikhfa is due is izhar, a mistake (audit 2026-10-16, C4)
 GHUNNAH_HEARD_AS: dict[str, str] = {
-    alph.phonetics.noon_mokhfah: alph.phonetics.noon_mokhfah + alph.phonetics.noon,
     alph.phonetics.meem_mokhfah: alph.phonetics.meem_mokhfah + alph.phonetics.meem,
 }
 # a noon or tanween (the modgham and iqlab tanween forms start with one of these)

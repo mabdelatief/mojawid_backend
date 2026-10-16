@@ -6,7 +6,9 @@ Ported from tajweed_ai `muaalem_lab/readable.py`.
 
 Fixed in Mojawid (user's decision, 2026-10-16): a leen madd. The script writes one of N harakat as
 its yaa or waw N-1 times with no haraka after, and the lab read 3+ of them as a ghunnah
-(«قُرَيّْشْ (غنة)»). A ghunnah held into a yaa or waw always has a haraka after it.
+(«قُرَيّْشْ (غنة)»). A ghunnah held into a yaa or waw always has a haraka after it. A run of 2 (a
+leen of 3) is a leen after a fatha, or when the caller knows the group is a leen madd; otherwise it
+is a doubled letter at a stop («عَدُوّْ»). A madd that ends in a sakt says so (audit 2026-10-16).
 """
 
 from typing import TypedDict
@@ -80,13 +82,13 @@ def _marks(core: str, n: int, residual: str) -> tuple[str, list[str]]:
     return marks, notes
 
 
-def _group(group: str) -> tuple[str, list[str]]:
+def _group(group: str, leen: bool = False) -> tuple[str, list[str]]:
     core, n, residual = split_group(group)
-    if core in LEEN_CONSONANTS and n >= LEEN_RUN and residual not in HARAKA:
+    if core in LEEN_CONSONANTS and residual not in HARAKA and (n >= LEEN_RUN or (leen and n >= 2)):
         return core + SUKOON, [f"مد {harakat(n + 1)}"]
     if core in MADD_LETTER:
         notes = [f"مد {harakat(n)}"] + (["إمالة"] if core == P.alif_momala else [])
-        return MADD_LETTER[core], notes
+        return MADD_LETTER[core], notes + (["سكتة"] if residual == P.sakt else [])
     if core in HIDDEN:
         return HIDDEN[core], ["إخفاء بغنة"]
     letter, notes = ("أ", ["تسهيل"]) if core == P.hamza_mosahala else (core, [])
@@ -94,17 +96,19 @@ def _group(group: str) -> tuple[str, list[str]]:
     return letter + marks, notes + more
 
 
-def readable(qps: str) -> Readable:
-    """{"text": letters with marks, "notes": what the marks can't show}."""
-    text, notes = "", []
+def readable(qps: str, leen: bool = False) -> Readable:
+    """{"text": letters with marks, "notes": what the marks can't show}. `leen`: the caller knows
+    a sakin yaa/waw run here is a leen madd (an error row carrying the leen rule)."""
+    text, notes, after_fatha = "", [], False
     for g in chunck_phonemes(qps) if qps else []:
-        t, ns = _group(g)
+        t, ns = _group(g, leen or after_fatha)
+        after_fatha = g[-1] == P.fatha
         text += t
         notes += [x for x in ns if x not in notes]
     return {"text": text, "notes": notes}
 
 
-def describe(qps: str) -> str:
+def describe(qps: str, leen: bool = False) -> str:
     """One line, e.g. «ي (مد ٤ حركات)»."""
-    r = readable(qps)
+    r = readable(qps, leen)
     return r["text"] + (f" ({'، '.join(r['notes'])})" if r["notes"] else "")
