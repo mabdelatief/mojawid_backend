@@ -121,6 +121,7 @@ dl.facts dd { margin: 0; font-size: .92rem; }
 }
 .verdicts button.ok.on { background: var(--ok); border-color: var(--ok); color: var(--surface); }
 .verdicts button.fix.on { background: var(--fix); border-color: var(--fix); color: var(--surface); }
+.verdicts button.on::before { content: "✓ "; }
 .verdicts button.clear { margin-inline-start: auto; border: none; background: none; color: var(--ink-soft); font-size: .85rem; }
 textarea {
   width: 100%; min-height: 84px; font: inherit; color: var(--ink); background: var(--paper);
@@ -142,3 +143,4 @@ textarea {
 }
 .toast.show { opacity: .92; }
 .hidden { display: none !important; }
+.invisible { visibility: hidden; }

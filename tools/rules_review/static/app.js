@@ -95,27 +95,45 @@ function othersNode(id) {
     a.correction ? el("div", { class: "txt" }, a.correction) : null)));
 }
 
+/* Keep `anchor` where it is on screen while `change` runs: whatever grows or shrinks around it,
+   the page scrolls back by the difference, so nothing moves under the finger. */
+function keepStill(anchor, change) {
+  const before = anchor ? anchor.getBoundingClientRect().top : 0;
+  change();
+  if (!anchor) return;
+  const shift = anchor.getBoundingClientRect().top - before;
+  if (Math.abs(shift) > 0.5) window.scrollBy(0, shift);
+}
+
+function setMine(id, row) {
+  state.answers[id] = state.answers[id] || {};
+  if (row) state.answers[id][state.me.email] = row;
+  else delete state.answers[id][state.me.email];
+}
+
 const saveTimers = {};
-async function save(item, verdict, correction) {
+async function save(item, verdict, correction, anchor) {
+  /* the choice shows at once; undone if the server doesn't take it */
   const card = state.items[item.id];
   const status = $(".saved", card);
+  const before = mine(item.id);
+  const shown = verdict === null ? null : {
+    ...(before || {}), item_id: item.id, reviewer: state.me.email, name: state.me.name,
+    verdict, correction, item_hash: item.hash,
+  };
+  setMine(item.id, shown);
+  keepStill(anchor, () => { refreshItem(item); refreshCounts(); });
+  status.textContent = verdict === null ? "" : "جارٍ الحفظ…";
   try {
-    let row = null;
-    if (verdict === null) {
-      await api(`/answers/${encodeURIComponent(item.id)}`, { method: "DELETE" });
-    } else {
-      row = await api(`/answers/${encodeURIComponent(item.id)}`, {
-        method: "PUT",
-        body: JSON.stringify({ verdict, correction, hash: item.hash }),
-      });
-    }
-    state.answers[item.id] = state.answers[item.id] || {};
-    if (row) state.answers[item.id][state.me.email] = row;
-    else delete state.answers[item.id][state.me.email];
+    const path = `/answers/${encodeURIComponent(item.id)}`;
+    const row = verdict === null
+      ? await api(path, { method: "DELETE" })
+      : await api(path, { method: "PUT", body: JSON.stringify({ verdict, correction, hash: item.hash }) });
+    setMine(item.id, row);
     status.textContent = row ? "حُفظ" : "";
-    refreshItem(item);
-    refreshCounts();
   } catch (err) {
+    setMine(item.id, before);
+    keepStill(anchor, () => { refreshItem(item); refreshCounts(); });
     status.textContent = "";
     toast("تعذّر الحفظ؛ يرجى التحقق من الاتصال");
   }
@@ -125,8 +143,8 @@ function saveLater(item, verdict, textarea) {
   clearTimeout(saveTimers[item.id]);
   saveTimers[item.id] = setTimeout(() => {
     const text = textarea.value.trim();
-    if (verdict === "note") save(item, text ? "note" : null, text);
-    else save(item, verdict, text);
+    if (verdict === "note") save(item, text ? "note" : null, text, textarea);
+    else save(item, verdict, text, textarea);
   }, 700);
 }
 
@@ -138,19 +156,18 @@ function answerNode(item) {
     box.addEventListener("input", () => saveLater(item, "note", box));
     return el("div", { class: "answer" }, box, saved, el("div", { class: "others-slot" }));
   }
-  const ok = el("button", { type: "button", class: "ok", onclick: () => {
-    box.classList.add("hidden");
-    save(item, "approve", "");
+  /* no automatic focus: on a phone it opens the keyboard and scrolls the page away */
+  const ok = el("button", { type: "button", class: "ok", onclick: (e) => {
+    clearTimeout(saveTimers[item.id]);
+    save(item, "approve", "", e.currentTarget);
   } }, "موافق");
-  const fix = el("button", { type: "button", class: "fix", onclick: () => {
-    box.classList.remove("hidden");
-    box.focus();
-    save(item, "correct", box.value.trim());
+  const fix = el("button", { type: "button", class: "fix", onclick: (e) => {
+    save(item, "correct", box.value.trim(), e.currentTarget);
   } }, "يحتاج تصحيحًا");
-  const clear = el("button", { type: "button", class: "clear", onclick: () => {
+  const clear = el("button", { type: "button", class: "clear", onclick: (e) => {
+    clearTimeout(saveTimers[item.id]);
     box.value = "";
-    box.classList.add("hidden");
-    save(item, null, "");
+    save(item, null, "", e.currentTarget.parentElement);
   } }, "إلغاء الإجابة");
   box.classList.add("hidden");
   box.addEventListener("input", () => saveLater(item, "correct", box));
@@ -170,11 +187,9 @@ function refreshItem(item) {
   } else {
     $("button.ok", card).classList.toggle("on", a?.verdict === "approve");
     $("button.fix", card).classList.toggle("on", a?.verdict === "correct");
-    $("button.clear", card).classList.toggle("hidden", !a);
-    if (a?.verdict === "correct") {
-      box.classList.remove("hidden");
-      if (document.activeElement !== box) box.value = a.correction;
-    }
+    $("button.clear", card).classList.toggle("invisible", !a);
+    box.classList.toggle("hidden", a?.verdict !== "correct");
+    if (a?.verdict === "correct" && document.activeElement !== box) box.value = a.correction;
     $(".stale", card).classList.toggle("hidden", !a || a.item_hash === item.hash);
   }
   const slot = $(".others-slot", card);
@@ -212,7 +227,6 @@ function refreshCounts() {
     $(".n", link).textContent = items.length ? `${ar(n)} من ${ar(items.length)}` : "";
     link.classList.toggle("done", items.length > 0 && n === items.length);
   }
-  applyFilter();
 }
 
 function visible(item) {
@@ -250,6 +264,7 @@ function render() {
       s.items.map(itemNode))));
   for (const sec of c.sections) for (const it of sec.items) refreshItem(it);
   refreshCounts();
+  applyFilter();
 }
 
 async function load() {
@@ -265,15 +280,27 @@ async function load() {
   }
 }
 
+function firstOnScreen() {
+  const top = $(".top").getBoundingClientRect().bottom;
+  return Object.values(state.items).find((c) => {
+    const r = c.getBoundingClientRect();
+    return r.height > 0 && r.bottom > top;
+  });
+}
+
 async function poll() {
   /* the other teacher's answers, every 30 s; one's own edits stay as typed */
   try {
     const rows = await api("/answers");
     const next = {};
     for (const r of rows) (next[r.item_id] ||= {})[r.reviewer] = r;
+    const mineNow = Object.fromEntries(Object.keys(state.items).map((id) => [id, mine(id)]));
     state.answers = next;
-    for (const sec of state.content.sections) for (const it of sec.items) refreshItem(it);
-    refreshCounts();
+    for (const [id, row] of Object.entries(mineNow)) setMine(id, row); /* own edits stay as shown */
+    keepStill(firstOnScreen(), () => {
+      for (const sec of state.content.sections) for (const it of sec.items) refreshItem(it);
+      refreshCounts();
+    });
   } catch (err) { /* try again next time */ }
 }
 
