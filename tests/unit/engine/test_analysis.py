@@ -277,3 +277,27 @@ def test_firq_is_both_valid_connected_only() -> None:
     k = word_index(26, 63, "فرق")
     assert both_valid_letters(26, 63) == [(k, "ر")]
     assert both_valid_letters(26, 63, word_end=k) == []
+
+
+@pytest.mark.parametrize(
+    ("letters", "harakat", "state"),
+    [(1, 2, "variant"), (3, 4, None), (5, 6, "variant"), (2, 3, "mistake")],
+)
+def test_leen_madd_lengths_follow_the_rules_table(
+    letters: int, harakat: int, state: str | None
+) -> None:
+    # Leen Madd: 2, 4 or 6 harakat are all correct (rules.madd_lengths); 4 is the default. A leen
+    # of N harakat is written as N-1 letters, and explain_error already counts it in harakat.
+    # The lab added 1 again and got these backwards; fixed in Mojawid on 2026-10-16.
+    ref = ref_of(106, 4)  # خَوْفٍۭ: leen at the stop
+    ph = ref.phonetic.phonemes
+    m = list(re.finditer("ووو", ph))[-1]
+    rows = analyze(heard_as(ph[: m.start()] + "و" * letters + ph[m.end() :]), ref)["errors"]
+    leen = [r for r in rows if any(x["en"] == "Leen Madd" for x in r["rules"])]
+    if state is None:
+        assert leen == [], harakat
+        return
+    assert leen, harakat
+    assert leen[0]["predicted_len"] == harakat
+    assert bool(leen[0]["valid_variant"]) == (state == "variant")
+    assert leen[0]["likely_false_alarm"] == (state == "variant")

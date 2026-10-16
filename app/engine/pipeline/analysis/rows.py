@@ -70,9 +70,10 @@ def _madd_variant(e: Any, rules: list[Any]) -> dict[str, str] | None:
     for r in rules:
         name = r.name.en
         if name in allowed:
-            heard = e.predicted_len + (
-                1 if name == "Leen Madd" else 0
-            )  # leen: N harakat = N-1 letters
+            # explain_error's lengths are already harakat, a leen madd included (3 letters → 4).
+            # Fixed in Mojawid 2026-10-16 (user's decision): the lab adds 1 for leen again, so
+            # it called a leen at the allowed 2 or 6 harakat a mistake and one at 3 allowed.
+            heard = e.predicted_len
             if heard in allowed[name] and e.predicted_len != e.expected_len:
                 return {
                     "reason": "madd_length",

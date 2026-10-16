@@ -304,8 +304,9 @@ Alongside the report it returns `detection` (auto mode: candidates, `clear`, ope
   `predicted_len` already are harakat, leen included (checked 2026-10-16: 3 letters → 4).
   - *Correction (2026-10-16):* this file used to say they were letters with leen +1. The lab's
     `_valid_variant` makes the same mistake: it adds 1 for leen again, so a leen read at the
-    allowed 2 or 6 harakat is called a mistake and one read at 3 is called allowed. Ported
-    unchanged for now; whether to fix it in Mojawid is the user's call.
+    allowed 2 or 6 harakat is called a mistake and one read at 3 is called allowed. Fixed in
+    Mojawid (`analysis/rows.py`, user's decision, 2026-10-16); noted in tajweed_ai's project log,
+    whose code is unchanged.
 
 ## 5. How the lab app shows a result today
 
