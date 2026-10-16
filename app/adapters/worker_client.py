@@ -70,6 +70,7 @@ class WorkerClient:
         self.retry_window_s = retry_window_s
         self.sleep = sleep
         self.clock = clock
+        self.last_answered: float | None = None  # clock() of the worker's last real answer
 
     @classmethod
     def from_settings(cls, settings: Settings) -> "WorkerClient":
@@ -82,6 +83,10 @@ class WorkerClient:
             timeout=timeout,
         )
         return cls(http, settings.worker_retry_window_s)
+
+    def is_warm(self, window_s: float) -> bool:
+        """Whether the worker answered within the last `window_s` seconds (so it's up)."""
+        return self.last_answered is not None and self.clock() - self.last_answered < window_s
 
     async def close(self) -> None:
         await self.http.aclose()
@@ -110,6 +115,8 @@ class WorkerClient:
             try:
                 response = await self.http.post(path, **kwargs)
                 if response.status_code not in RETRY_STATUSES:
+                    if response.status_code != status.HTTP_401_UNAUTHORIZED:
+                        self.last_answered = self.clock()
                     return response
             except httpx.ReadTimeout as exc:
                 raise timed_out() from exc  # it may be running: never send it twice

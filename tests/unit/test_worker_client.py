@@ -142,3 +142,20 @@ async def test_warm() -> None:
         return httpx.Response(200, json={"ready": True, "device": "cuda"})
 
     assert await client(handler, FakeTime()).warm() is True
+
+
+async def test_warm_means_it_answered_recently() -> None:
+    statuses = iter([401, 200])
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(next(statuses), json={"ready": True, "device": "cuda"})
+
+    fake = FakeTime()
+    worker = client(handler, fake)
+    assert not worker.is_warm(240)
+    assert await worker.warm() is False  # a 401 is our misconfiguration, not a live worker
+    assert not worker.is_warm(240)
+    assert await worker.warm() is True
+    assert worker.is_warm(240)
+    fake.now += 300
+    assert not worker.is_warm(240)

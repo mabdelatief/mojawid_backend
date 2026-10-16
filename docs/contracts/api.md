@@ -170,10 +170,14 @@ request.
 5. **The ayah marker ۝** plays the whole `audio_url`.
 
 ### `POST /v1/warmup`
-Call when the Record screen opens. It answers at once (`202 {"pinged": true}`) and wakes the
-analysis worker in the background. In production the worker scales to zero and takes 15–40 s to
-start, so it's ready by the time the recording arrives. `pinged: false` means another warm-up
-woke it moments ago. Limits: 20 an hour per install, 60 per network.
+Call when the Record screen opens. It always answers at once:
+- `200 {"state": "warm"}`: the analysis worker answered moments ago (a warm-up or an analysis
+  within the last 4 minutes), so nothing is sent;
+- `202 {"state": "warming"}`: it's being woken in the background. In production the worker
+  scales to zero and takes 15–40 s to start, so it's ready by the time the recording arrives.
+
+Limits: 20 an hour per install, 60 per network. They'll be revisited once the production worker
+exists.
 
 ### `POST /v1/analyses`
 Analyse one recording.

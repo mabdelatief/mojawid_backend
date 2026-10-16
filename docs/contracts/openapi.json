@@ -853,18 +853,22 @@
         "title": "TextUsed",
         "type": "object"
       },
-      "WarmupAccepted": {
-        "description": "POST /v1/warmup (202). `pinged`: false when another warm-up pinged it moments ago.",
+      "WarmupState": {
+        "description": "POST /v1/warmup: \"warm\" (200) when the worker answered moments ago, so nothing was sent;\n\"warming\" (202) when it is being woken.",
         "properties": {
-          "pinged": {
-            "title": "Pinged",
-            "type": "boolean"
+          "state": {
+            "enum": [
+              "warm",
+              "warming"
+            ],
+            "title": "State",
+            "type": "string"
           }
         },
         "required": [
-          "pinged"
+          "state"
         ],
-        "title": "WarmupAccepted",
+        "title": "WarmupState",
         "type": "object"
       },
       "WordTime": {
@@ -1899,7 +1903,7 @@
     },
     "/v1/warmup": {
       "post": {
-        "description": "Call when the Record screen opens. Answers at once; the worker starts in the background.",
+        "description": "Call when the Record screen opens. 200 \"warm\": it answered moments ago, nothing sent.\n202 \"warming\": it is being woken in the background. Answers at once either way.",
         "operationId": "post_warmup",
         "parameters": [
           {
@@ -1936,11 +1940,21 @@
           }
         ],
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupState"
+                }
+              }
+            },
+            "description": "Already warm"
+          },
           "202": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WarmupAccepted"
+                  "$ref": "#/components/schemas/WarmupState"
                 }
               }
             },

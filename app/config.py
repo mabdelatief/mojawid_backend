@@ -69,7 +69,8 @@ class Settings(BaseSettings):
     worker_read_timeout_s: float = 60.0
     # how long to keep retrying while the worker starts (connection refused, 502/503/504)
     worker_retry_window_s: float = 90.0
-    warmup_interval_s: float = 60.0  # at most one warm-up ping per API process in this time
+    # the worker counts as warm this long after it last answered (under Modal's scale-down)
+    worker_warm_window_s: float = 240.0
 
     # --- Analyses ---
     analysis_result_ttl_hours: int = 24

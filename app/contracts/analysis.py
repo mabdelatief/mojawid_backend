@@ -109,7 +109,8 @@ class AnalysisPending(BaseModel):
     status: Literal["running"] = "running"
 
 
-class WarmupAccepted(BaseModel):
-    """POST /v1/warmup (202). `pinged`: false when another warm-up pinged it moments ago."""
+class WarmupState(BaseModel):
+    """POST /v1/warmup: "warm" (200) when the worker answered moments ago, so nothing was sent;
+    "warming" (202) when it is being woken."""
 
-    pinged: bool
+    state: Literal["warm", "warming"]

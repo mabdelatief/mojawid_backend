@@ -55,6 +55,8 @@ class FakeWorker:
     raise_error: AppError | None = None
     delay: float = 0.0
     warms: int = 0
+    warm_delay: float = 0.0
+    answered: bool = False
 
     async def analyze(self, audio: bytes, params: dict[str, Any]) -> dict[str, Any]:
         self.calls.append(params)
@@ -63,18 +65,24 @@ class FakeWorker:
             await asyncio.sleep(self.delay)
         if self.raise_error is not None:
             raise self.raise_error
+        self.answered = True
         return result_for(params)
 
     async def warm(self) -> bool:
         self.warms += 1
+        await asyncio.sleep(self.warm_delay)
+        self.answered = True
         return True
+
+    def is_warm(self, window_s: float) -> bool:
+        return self.answered
 
 
 @pytest.fixture
 async def clean(engine: AsyncEngine) -> AsyncIterator[None]:
     async with engine.begin() as conn:
         await conn.execute(text("TRUNCATE analysis, rate_limit_counter"))
-    WarmupService.last_ping = float("-inf")
+    WarmupService._ping_task = None
     yield
 
 
@@ -255,13 +263,24 @@ async def test_no_audio_is_ever_kept(client: httpx.AsyncClient, engine: AsyncEng
 
 
 async def test_warmup(client: httpx.AsyncClient, worker: FakeWorker) -> None:
+    worker.warm_delay = 0.2
     first = await client.post("/v1/warmup", headers=HEADERS)
-    assert (first.status_code, first.json()) == (202, {"pinged": True})
+    assert (first.status_code, first.json()) == (202, {"state": "warming"})
     second = await client.post("/v1/warmup", headers=HEADERS)
-    assert second.json() == {"pinged": False}  # pinged moments ago
-    await asyncio.sleep(0.05)
-    assert worker.warms == 1
+    assert (second.status_code, second.json()) == (202, {"state": "warming"})
+    await asyncio.sleep(0.3)
+    assert worker.warms == 1  # one ping in flight at a time
+    warm = await client.post("/v1/warmup", headers=HEADERS)
+    assert (warm.status_code, warm.json()) == (200, {"state": "warm"})
+    assert worker.warms == 1  # warm: nothing sent
     assert (await client.post("/v1/warmup")).status_code == 401
+
+
+async def test_an_analysis_counts_as_warm(client: httpx.AsyncClient, worker: FakeWorker) -> None:
+    assert (await post(client, uuid.uuid4())).status_code == 200
+    r = await client.post("/v1/warmup", headers=HEADERS)
+    assert (r.status_code, r.json()) == (200, {"state": "warm"})
+    assert worker.warms == 0
 
 
 async def test_warmup_limit(migrated_database: str, clean: None, worker: FakeWorker) -> None:
@@ -269,7 +288,7 @@ async def test_warmup_limit(migrated_database: str, clean: None, worker: FakeWor
     async with make_client(migrated_database, worker, warmups_per_install_hour=2) as c:
         codes = [(await c.post("/v1/warmup", headers=HEADERS)).status_code for _ in range(3)]
     await dispose_engine()
-    assert codes == [202, 202, 429]
+    assert codes[2] == 429 and all(c in (200, 202) for c in codes[:2])
 
 
 async def test_purge(engine: AsyncEngine, clean: None) -> None:
