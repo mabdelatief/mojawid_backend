@@ -3,7 +3,9 @@
 Approved with the user on 2026-10-15. This file is the decision record: what the backend is made
 of, why, and the order it's built in. Each phase updates the "Status" line below when it lands.
 
-**Status:** phase 1 (API skeleton, dev compose, recitation tables, timings loaded) done.
+**Status:** phases 1–2 done: API skeleton, dev compose, recitation tables + timings loaded;
+access layer (app key, install id, rate limiter), reciters and timings endpoints, contract
+draft (`docs/contracts/`).
 
 ## Context
 Mojawid needs a backend that gives the app:

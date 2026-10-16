@@ -5,6 +5,7 @@ from collections.abc import AsyncIterator, Callable
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 
 from app.api.router import api_router
@@ -53,6 +54,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         generate_unique_id_function=_operation_id,
     )
     app.add_middleware(RequestIdMiddleware, header_name=resolved.request_id_header)
+    # The web build calls the API from the browser; it must be allowed to send the access headers.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=list(resolved.cors_origins),
+        allow_methods=["GET", "POST", "PUT"],
+        allow_headers=["Content-Type", "X-Api-Key", "X-Install-Id", resolved.request_id_header],
+        expose_headers=[resolved.request_id_header, "Retry-After"],
+    )
     register_exception_handlers(app)
     app.include_router(api_router)
     return app

@@ -27,7 +27,9 @@ docker compose up -d
 ```
 
 `http://localhost:8100/docs` shows the API in dev. `/healthz` is liveness and `/readyz` checks
-the database.
+the database. `/v1` routes need `X-Api-Key: mojawid-dev-key` and an `X-Install-Id` UUID. The
+contract is `docs/contracts/api.md`; after changing a route, run
+`.venv/bin/python -m tools.export_openapi` (a test checks the snapshot).
 
 ## Tests
 
