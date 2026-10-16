@@ -13,6 +13,10 @@ from the letter's natural one.
 
 A value's `sure` says whether it may become a question; a letter with no value of its own gets its
 natural value, not sure.
+
+Fixed in Mojawid (audit 2026-10-16, C6): a haraka or qalqalah mark with no letter before it (at
+the start, or right after another mark) can't belong to any letter group, and raised a plain
+ValueError (a 500). Such a mark is dropped before the letters are grouped.
 """
 
 from collections.abc import Mapping
@@ -20,11 +24,13 @@ from collections.abc import Mapping
 import numpy as np
 
 from app.engine.pipeline.ctc import Token, ctc_greedy, group_frames
+from app.engine.pipeline.errors import AnalysisError
 from app.engine.pipeline.heard import Heard, HeardGroup, SifaValue
 from app.engine.text.letter_sifat import SIFAT_LEVELS, natural_sifat
-from app.engine.text.qt import chunck_phonemes
+from app.engine.text.qt import alph, chunck_phonemes
 
-DECODER_VERSION = 1
+DECODER_VERSION = 2
+MARKS = frozenset(alph.phonetic_groups.residuals)  # harakat and the qalqalah mark
 SURE_MIN_PROB = 0.5
 GAP_REACH = 1  # letters either side of an alignment gap are not sure
 SLIP_WINDOW = 3  # letters either side looked at when testing for a one-letter slip
@@ -128,13 +134,26 @@ def place_level(
 Vocab = Mapping[str, Mapping[int, str]]
 
 
+def drop_stray_marks(tokens: list[Token], vocab: Mapping[int, str]) -> list[Token]:
+    """The tokens without a mark that has no letter before it: a leading haraka, a second haraka
+    in a row, a doubled qalqalah mark."""
+    kept: list[Token] = []
+    after_mark = True  # nothing before the first token
+    for t in tokens:
+        is_mark = vocab[t.id] in MARKS
+        if not (is_mark and after_mark):
+            kept.append(t)
+            after_mark = is_mark
+    return kept
+
+
 def decode(probs: Mapping[str, np.ndarray], id_to_vocab: Vocab, sifat_to_en: Vocab) -> Heard:
     """The heard script and its sifat from the per-frame probabilities of every output."""
-    tokens = ctc_greedy(probs["phonemes"])
+    tokens = drop_stray_marks(ctc_greedy(probs["phonemes"]), id_to_vocab["phonemes"])
     text = "".join(id_to_vocab["phonemes"][t.id] for t in tokens)
     groups = chunck_phonemes(text) if text else []
     if "".join(groups) != text:
-        raise ValueError(f"heard script does not split into letter groups: {text!r}")
+        raise AnalysisError("The recording could not be analysed.")
     spans = group_frames(groups, tokens)
     natural_of = [natural_sifat(groups, k) for k in range(len(groups))]
     per_level: dict[str, list[SifaValue]] = {}
