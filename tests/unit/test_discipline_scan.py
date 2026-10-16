@@ -219,7 +219,7 @@ def test_pyproject_rules(tmp_tree: Path, monkeypatch: pytest.MonkeyPatch) -> Non
     pypi = '[project]\ndependencies = ["quran-transcript==0.6.4"]\n'
     assert "vendored" in _pyproject(tmp_tree, monkeypatch, "", pypi)[0][2]
     vendored = (
-        '[project]\ndependencies = ["quran-transcript==0.6.4+muaalem.1"]\n'
+        '[project]\ndependencies = ["quran-transcript==0.6.4+muaalem.2"]\n'
         '[tool.uv.sources]\nquran-transcript = { path = "vendor/quran-transcript" }\n'
     )
     assert _pyproject(tmp_tree, monkeypatch, "", vendored) == []

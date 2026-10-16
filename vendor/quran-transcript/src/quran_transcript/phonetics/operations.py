@@ -937,11 +937,13 @@ class Madd(ConversionOperation):
             mappings = add_tajweed_rule_to_mappings(
                 mappings,
                 text,
-                f"{uth.fatha}({chr}){uth.ras_haaa}?[^{uth.shadda}]{uth.ras_haaa}?$",
+                # muaalem patch 3c: a letter must follow the leen letter (not a sukun mark), so a
+                # stop on a final «أَوْ» / «لَوْ» is a plain sakin letter, not a leen madd
+                f"{uth.fatha}({chr}){uth.ras_haaa}?[^{uth.shadda}{uth.ras_haaa}]{uth.ras_haaa}?$",
                 LeenMaddRule(golden_len=moshaf.madd_alleen_len, tag=tag),
             )
         text, mappings = sub_with_mapping(
-            f"({uth.fatha})([{uth.yaa}{uth.waw}])({uth.ras_haaa}?[^{uth.shadda}]{uth.ras_haaa}?$)",
+            f"({uth.fatha})([{uth.yaa}{uth.waw}])({uth.ras_haaa}?[^{uth.shadda}{uth.ras_haaa}]{uth.ras_haaa}?$)",
             r"\1" + (moshaf.madd_alleen_len - 1) * r"\2" + r"\3",
             text,
             mappings,

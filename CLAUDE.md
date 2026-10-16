@@ -31,7 +31,7 @@ in `docs/architecture.md`; follow it, and discuss before changing it.
     each one has a reason recorded there.
   - Never add Mojawid features to tajweed_ai; they're built in this repo.
 - **Use tajweed_ai's patched quran-transcript** (`vendor/quran-transcript`,
-  `0.6.4+muaalem.1`), never the PyPI release. It changes the expected reading at specific
+  `0.6.4+muaalem.2`), never the PyPI release. It changes the expected reading at specific
   places, listed in `MUAALEM_PATCHES.md`.
 - **The models stay pinned:**
   - `obadx/muaalem-model-v3_2` at `01a1ef9fbe40d144ef845101e89ff924aed3fef5`;
@@ -129,7 +129,7 @@ past it. If a rule seems wrong, say so to the user.
     above;
   - every `from_pretrained` / `snapshot_download` passes `revision=` from it;
   - changing a revision means changing this file and the scanner's table together, on purpose.
-- **Patched quran-transcript only** *(scan)*: `quran-transcript==0.6.4+muaalem.1` from the
+- **Patched quran-transcript only** *(scan)*: `quran-transcript==0.6.4+muaalem.2` from the
   vendored path in `pyproject.toml`, never PyPI.
 
 ## Project tracking (Vikunja)

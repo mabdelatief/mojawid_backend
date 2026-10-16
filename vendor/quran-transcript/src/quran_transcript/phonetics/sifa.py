@@ -266,7 +266,8 @@ def raa_tafkheem_tarqeeq_finder(
 
     tarqeeq_cases = [
         f"({uth.raa}){uth.shadda}?[{uth.kasra}{uth.imala_sign}]",
-        f"{uth.kasra}({uth.raa})(?:{uth.ras_haaa}[^{phg.tafkheem}]|{uth.ras_haaa}$|$)",
+        # muaalem patch 3a: a doubled raa at a stop after a kasra («مُسْتَمِرّ», «ٱلْبِرّ») is light
+        f"{uth.kasra}({uth.raa})(?:{uth.ras_haaa}[^{phg.tafkheem}]|{uth.ras_haaa}$|{uth.shadda}$|$)",
         f"{uth.kasra}[^{phg.tafkheem}]{uth.ras_haaa}({uth.raa})(?:{uth.ras_haaa}|$)",
         f"{uth.kasra}{uth.yaa}({uth.raa})(?:{uth.ras_haaa}|$)",
         f"{uth.fatha}{uth.yaa}{uth.ras_haaa}({uth.raa})(?:{uth.ras_haaa}|$)",
@@ -307,6 +308,18 @@ def raa_tafkheem_tarqeeq_finder(
     return outputs
 
 
+
+# muaalem patch 3b: a sakin qalqalah letter merged incompletely into the next letter (ط into ت:
+# «أَحَطتُ», «بَسَطتَ», «فَرَّطتُ»; ق into ك in «نَخْلُقكُّم» read with idgham naqis) keeps its
+# itbaq and isti'la but is not released, so it has no qalqalah.
+_INCOMPLETE_IDGHAM = {ph.taa_mofakhama: ph.taa, ph.qaf: ph.kaf}
+
+
+def _merged_incompletely(groups: list[str], idx: int) -> bool:
+    letter = groups[idx][0]
+    nxt = groups[idx + 1][0] if idx + 1 < len(groups) else ""
+    return len(groups[idx]) == 1 and _INCOMPLETE_IDGHAM.get(letter) == nxt
+
 def process_sifat(
     uthmani_script: str, phonetic_script: str, moshaf: MoshafAttributes
 ) -> list[SifaOutput]:
@@ -346,7 +359,9 @@ def process_sifat(
         safeer = "safeer" if p in phg.safeer else "no_safeer"
         qalqa = (
             "moqalqal"
-            if phonenemes_groups[idx][-1] not in phg.harakat and p in phg.qalqal
+            if phonenemes_groups[idx][-1] not in phg.harakat
+            and p in phg.qalqal
+            and not _merged_incompletely(phonenemes_groups, idx)
             else "not_moqalqal"
         )
         tikrar = "mokarar" if p in phg.tikrar else "not_mokarar"

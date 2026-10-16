@@ -11,7 +11,7 @@ import json
 from typing import Any
 
 
-def _sha(value: Any) -> str:
+def sha256_of(value: Any) -> str:
     text = json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)
     return hashlib.sha256(text.encode()).hexdigest()
 
@@ -40,6 +40,6 @@ def summarize(ref: Any, spans: list[list[Any]]) -> dict[str, Any]:
         "phonemes": phonetic.phonemes,
         "segments": [_segment(s) for s in ref.segments],
         "tajweed": [list(s) for s in spans],
-        "sifat_sha256": _sha([s.model_dump() for s in phonetic.sifat]),
-        "mappings_sha256": _sha([_mapping(m) for m in phonetic.mappings]),
+        "sifat_sha256": sha256_of([s.model_dump() for s in phonetic.sifat]),
+        "mappings_sha256": sha256_of([_mapping(m) for m in phonetic.mappings]),
     }

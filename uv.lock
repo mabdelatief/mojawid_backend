@@ -1137,7 +1137,7 @@ wheels = [
 
 [[package]]
 name = "quran-transcript"
-version = "0.6.4+muaalem.1"
+version = "0.6.4+muaalem.2"
 source = { directory = "vendor/quran-transcript" }
 dependencies = [
     { name = "fuzzysearch" },

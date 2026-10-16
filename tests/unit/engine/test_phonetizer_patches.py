@@ -1,5 +1,5 @@
 """The phonetizer (vendor/quran-transcript, the patched 0.6.4) against the published rules of Hafs
-via al-Shatibiyya: the two patches, and the stop/start cases checked in the 2026-10-13 audit. All
+via al-Shatibiyya: the three patches, and the stop/start cases checked in the 2026-10-13 audit. All
 text comes from the Quran JSON (never hand-typed). Ported from tajweed_ai
 tests/test_phonetizer_patches.py."""
 
@@ -88,6 +88,55 @@ def test_iqlab_connected_unchanged() -> None:
 def test_raa_option_at_a_stop(sura: int, aya: int, prefix: str, attr: str) -> None:
     assert last_raa(stop_after(sura, aya, prefix, **{attr: "tarqeeq"})) == "moraqaq"
     assert last_raa(stop_after(sura, aya, prefix, **{attr: "tafkheem"})) == "mofakham"
+
+
+# ---------- patch 3: doubled raa at a stop, incomplete-idgham qalqalah, final leen ----------
+
+
+def _sifa(out: Any, starts: str) -> list[Any]:
+    return [g for g in out.sifat if g.phonemes.startswith(starts)]
+
+
+@pytest.mark.parametrize(
+    ("sura", "aya", "prefix"),
+    [(54, 2, "مُّسْتَمِرٌّۭ"), (54, 3, "مُّسْتَقِرٌّۭ"), (54, 19, "مُّسْتَمِرٍّۢ"), (2, 177, "ٱلْبِرَّ")],
+)
+def test_doubled_raa_at_a_stop_after_kasra_is_light(sura: int, aya: int, prefix: str) -> None:
+    assert last_raa(stop_after(sura, aya, prefix)) == "moraqaq"  # al-Nashr: «وبالبر»
+
+
+def test_doubled_raa_after_fatha_or_connected_unchanged() -> None:
+    assert last_raa(stop_after(6, 98, "فَمُسْتَقَرٌّۭ")) == "mofakham"  # fatha before it
+    words = ayah_words(2, 177)
+    k = _index(2, 177, "ٱلْبِرَّ")
+    out = phonetize(" ".join(words[: k + 2]), M, 2)  # connected: the raa has its fatha
+    assert _sifa(out, "رر")[0].tafkheem_or_taqeeq == "mofakham"
+
+
+@pytest.mark.parametrize(
+    ("sura", "aya", "prefix"), [(27, 22, "أَحَطتُ"), (5, 28, "بَسَطتَ"), (39, 56, "فَرَّطتُ")]
+)
+def test_taa_merged_into_ta_has_no_qalqalah(sura: int, aya: int, prefix: str) -> None:
+    words = ayah_words(sura, aya)
+    k = _index(sura, aya, prefix)
+    out = phonetize(" ".join(words[: k + 2]), M, sura)
+    ta = next(g for g in out.sifat if g.phonemes == "ط")
+    assert (ta.qalqla, ta.itbaq, ta.tafkheem_or_taqeeq) == ("not_moqalqal", "motbaq", "mofakham")
+
+
+def test_other_qalqalah_unchanged() -> None:
+    out = stop_after(27, 22, "تُحِطْ")
+    assert _sifa(out, "طڇ")[-1].qalqla == "moqalqal"
+
+
+@pytest.mark.parametrize(("sura", "aya", "prefix"), [(2, 19, "أَوْ"), (2, 20, "وَلَوْ")])
+def test_stop_on_a_final_leen_letter_has_no_madd(sura: int, aya: int, prefix: str) -> None:
+    out = stop_after(sura, aya, prefix)
+    assert out.phonemes.endswith("َو") and not out.phonemes.endswith("وو")
+
+
+def test_leen_at_a_stop_unchanged() -> None:
+    assert whole(106, 4).phonemes.endswith("خَوووف")  # خَوْفٍۭ: leen 4 = 3 letters
 
 
 # ---------- stops, starts and ghunnah: checked against the published rules ----------

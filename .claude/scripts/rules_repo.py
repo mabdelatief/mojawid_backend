@@ -35,7 +35,7 @@ from scan_common import (
 )
 
 Finding = tuple[Path | None, int | None, str]
-QURAN_TRANSCRIPT_PIN = "quran-transcript==0.6.4+muaalem.1"
+QURAN_TRANSCRIPT_PIN = "quran-transcript==0.6.4+muaalem.2"
 
 
 def _in_length_roots(file: Path) -> bool:

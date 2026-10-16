@@ -40,7 +40,7 @@ async def test_meta(client: httpx.AsyncClient) -> None:
     assert "alif_salasila" not in settings  # fixed by the teachers' rulings, not offered
     assert meta["practices"] == {"raum": False}
     assert meta["limits"]["max_ayat_manual"] == 6
-    assert meta["engine"]["quran_transcript"] == "0.6.4+muaalem.1"
+    assert meta["engine"]["quran_transcript"] == "0.6.4+muaalem.2"
 
 
 async def test_reference_for_fatiha_with_openings(client: httpx.AsyncClient) -> None:

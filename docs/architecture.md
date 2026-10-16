@@ -88,7 +88,7 @@ app/
                          path/{cuts,search,result}, analysis/{rows,missed,words,sifat,marks,report},
                          extras/{word_times,mistake_keys,harakat}, audio, models/{loader,gpu,frame_probs,segmenter}
   worker/{main,auth,service,settings,modal_app}.py
-vendor/quran-transcript/   the patched 0.6.4+muaalem.1, copied from tajweed_ai unchanged
+vendor/quran-transcript/   the patched 0.6.4+muaalem.2 (tajweed_ai has +muaalem.1, without patch 3)
 docs/contracts/api.md      the contract with mojawid_flutter
 ```
 

@@ -80,7 +80,7 @@ What the app has to do for the user is in `mojawid_flutter/docs/product.md`.
   decoding** (section 3). It needs transformers below 5 (its issue #41).
 - **quran-transcript 0.6.4** turns Uthmani text into the phonetic script the model writes (the
   "phonetizer"). It also holds the Quran text and an error explainer. tajweed_ai uses **its
-  own patched copy** (`vendor/quran-transcript`, `0.6.4+muaalem.1`, patches listed in
+  own patched copy** (`vendor/quran-transcript`, `0.6.4+muaalem.2`, patches listed in
   `vendor/quran-transcript/MUAALEM_PATCHES.md`):
   - a stop on «مِنۢ / مَنۢ / عَنۢ …» is a clear noon, not a meem;
   - the «مِصْرَ» and «ٱلْقِطْرِ» raa options work mid-text;

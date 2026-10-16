@@ -1,9 +1,9 @@
 # /// script
 # requires-python = ">=3.12,<3.13"
-# dependencies = ["quran-transcript==0.6.4+muaalem.1"]
+# dependencies = ["quran-transcript==0.6.4+muaalem.2"]
 #
 # [tool.uv.sources]
-# quran-transcript = { path = "../../tajweed_ai/vendor/quran-transcript" }
+# quran-transcript = { path = "../vendor/quran-transcript" }
 # ///
 """One-time import of the reciters' word timings, re-keyed to our own words.
 
