@@ -74,7 +74,10 @@ build is readable by anyone, so it only identifies the client; the limits are th
 To rotate a key, edit the file and run `docker compose up -d`. To read one:
 `grep API_KEYS .env.deploy`.
 
-Mojawid has no Infisical project yet, so this file (like `.env`) exists only on this laptop.
+**A copy is in Infisical** (https://secrets.lab.egglink.com), in the project *Mojawid*: `.env`
+under `dev/mojawid_backend`, and `.env.deploy` under `prod/mojawid_backend`. It is a verified
+copy only; the stack reads the files on this laptop. After changing either file, update the copy
+as well.
 
 ## Updating
 
