@@ -67,6 +67,15 @@ async def test_reference_for_fatiha_with_openings(client: httpx.AsyncClient) -> 
     assert set(ref["classes_present"]) <= {span[2] for span in ref["tajweed"]}
 
 
+async def test_reference_words_carry_the_waqf_signs(client: httpx.AsyncClient) -> None:
+    r = await _reference(client, sura=2, aya_start=2, aya_end=2)
+    assert r.status_code == 200
+    body = r.json()
+    words = body["segments"][0]["words"]
+    assert {w["word"]: w["waqf"] for w in words if w["waqf"]} == {3: "ۛ", 4: "ۛ"}
+    assert "ۛ" not in body["uthmani"]  # display only: the text and its offsets are unchanged
+
+
 async def test_a_fixed_setting_sent_is_ignored(client: httpx.AsyncClient) -> None:
     # 68:1 «نٓ ۚ وَٱلْقَلَمِ»: idgham is al-Tayyiba's only, so the noon stays clear
     plain = (await _reference(client, sura=68, aya_start=1, aya_end=1)).json()

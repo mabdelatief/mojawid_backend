@@ -83,6 +83,9 @@ def without_new_fields(report: dict[str, Any]) -> dict[str, Any]:
     for row in out["errors"]:
         for k in NEW_ROW_KEYS:
             row.pop(k, None)
+    for seg in out["segments"]:
+        for word in seg["words"]:
+            word.pop("waqf", None)  # the Mushaf's waqf signs, for display (2026-10-17)
     return out
 
 

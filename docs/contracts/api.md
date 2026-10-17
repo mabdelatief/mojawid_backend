@@ -110,10 +110,10 @@ The response, real output for that request:
   "segments": [
     {"kind": "istiaatha", "start": 0, "end": 46, "words": []},
     {"kind": "recitation", "start": 47, "end": 71, "words": [
-      {"sura": 112, "aya": 1, "word": 0, "start": 47, "end": 51, "ayah_last": false},
-      {"sura": 112, "aya": 1, "word": 1, "start": 52, "end": 56, "ayah_last": false},
-      {"sura": 112, "aya": 1, "word": 2, "start": 57, "end": 64, "ayah_last": false},
-      {"sura": 112, "aya": 1, "word": 3, "start": 65, "end": 71, "ayah_last": true}]}
+      {"sura": 112, "aya": 1, "word": 0, "start": 47, "end": 51, "ayah_last": false, "waqf": null},
+      {"sura": 112, "aya": 1, "word": 1, "start": 52, "end": 56, "ayah_last": false, "waqf": null},
+      {"sura": 112, "aya": 1, "word": 2, "start": 57, "end": 64, "ayah_last": false, "waqf": null},
+      {"sura": 112, "aya": 1, "word": 3, "start": 65, "end": 71, "ayah_last": true, "waqf": null}]}
   ],
   "tajweed": [[10, 12, "silent"], [23, 25, "silent"], [36, 38, "silent"], [38, 41, "tafkheem"],
               [43, 44, "jaiz"], [57, 59, "silent"], [69, 71, "qalqalah"]],
@@ -128,6 +128,25 @@ The response, real output for that request:
 - **`word`** is the word's index in its ayah, the same index as in the reciter timings. A tap on
   a word plays it from `/v1/reciters/{slug}/timings` with no conversion.
 - **`ayah_last`** marks the last word of an ayah: put the ۝ marker after it.
+- **`waqf`** (added 2026-10-17): the Mushaf's waqf signs after the word, as the characters
+  themselves, or null. Append them to the word's text **with no space**, so the Quran font
+  places them above the word's last letter, as in the printed Mushaf. They aren't in `uthmani`,
+  so no offset moves. 4,363 words carry one; one word carries two («مَّرْقَدِنَا» in 36:52: the
+  sakt sign, then قلى). They are for display only: where the reciter stopped is never judged
+  against them.
+
+  | Char | Sign | Meaning |
+  |---|---|---|
+  | U+06D6 ۖ | صلى | stopping allowed, continuing better |
+  | U+06D7 ۗ | قلى | stopping allowed, stopping better |
+  | U+06D8 ۘ | م | stop required |
+  | U+06D9 ۙ | لا | don't stop here |
+  | U+06DA ۚ | ج | stopping and continuing equal |
+  | U+06DB ۛ | ∴ (معانقة) | stop at one of the pair, not both |
+  | U+06DC ۜ | س (سكتة) | the sakt (18:1, 36:52, 69:28, 75:27, 83:14) |
+
+  The signs come from Tanzil's text, like the rest of the Quran text. Tanzil's terms ask that the
+  app name the source (Tanzil Project) and link to tanzil.net, for example in «عن التطبيق».
 - **`tajweed`**: `[start, end, class]` spans, sorted and non-overlapping; uncoloured text has
   none. Natural (2-count) madd stays plain, as in the printed Mushaf.
 - **`classes_present`**: the classes that occur, for dimming the rest of the legend.

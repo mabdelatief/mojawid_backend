@@ -25,6 +25,7 @@ from app.engine.text.structure import (
     segment_overrides,
     validate_structure,
 )
+from app.engine.text.waqf import waqf_signs
 
 
 @dataclasses.dataclass
@@ -37,6 +38,7 @@ class SegmentWord:
     start: int  # character offsets into Reference.uthmani, end exclusive
     end: int
     ayah_last: bool
+    waqf: str | None = None  # the Mushaf's waqf signs after the word, for display (text/waqf.py)
 
 
 @dataclasses.dataclass
@@ -134,7 +136,8 @@ def _parts(st: Structure, moshaf: Any) -> list[_Part]:
 def _segment(part: _Part, offset: int) -> Segment:
     infos, pos = [], offset
     for w in part.words:
-        infos.append(SegmentWord(w.sura, w.aya, w.word, pos, pos + len(w.text), w.ayah_last))
+        sign = waqf_signs(w.sura, w.aya, w.word)
+        infos.append(SegmentWord(w.sura, w.aya, w.word, pos, pos + len(w.text), w.ayah_last, sign))
         pos += len(w.text) + 1
     return Segment(part.kind, offset, offset + len(part.text), infos, part.overrides, part.text)
 

@@ -76,6 +76,14 @@ class ReferenceWord(BaseModel):
     start: int
     end: int
     ayah_last: bool
+    waqf: str | None = Field(
+        default=None,
+        description=(
+            "The Mushaf's waqf signs after this word, as the characters themselves, in order "
+            "(U+06D6-U+06DC; 36:52 has two). For display: append to the word's text with no "
+            "space. Not part of `uthmani`, so no offset moves."
+        ),
+    )
 
 
 class ReferenceSegment(BaseModel):

@@ -89,6 +89,12 @@ What the app has to do for the user is in `mojawid_flutter/docs/product.md`.
   Over the whole Quran (77,433 stop positions) exactly these places changed and nothing else.
   The Mojawid backend must use this copy, not the PyPI one.
 - **Quran text:** Tanzil Uthmani, from inside quran-transcript. It has **no waqf marks**.
+  - The Mushaf's waqf signs (صلى، قلى، ج، المعانقة، م، لا, and the sakt sign) are added to each
+    word separately, for display only (`waqf` on the words, 2026-10-17).
+  - They come from Tanzil's full edition of the same text, imported once by
+    `tools/import_waqf_signs.py` into `app/engine/text/data/waqf_signs.json`. Its words match
+    ours in all 6,236 ayat, apart from where the small meem sits.
+  - The phonetized text never contains them.
 
 ## 2. The expected reading
 
@@ -384,8 +390,9 @@ not part of Mojawid.
 
 ## 6. Known limits
 
-- **No waqf marks** in the text, so a bad stop or a bad start isn't detected. The only one
-  known is «ٱلِٱسْمُ» 49:11, where starting is a bad start.
+- **Stops aren't judged against the waqf signs.** The signs are shown (since 2026-10-17), but a
+  stop at «لا» or a missed stop at «م» isn't detected; that needs the teachers' ruling. The only
+  bad start known to the engine is «ٱلِٱسْمُ» 49:11.
 - **Raum** is only a flag. The script can't write it, and the model can't tell it from a full
   haraka.
 - **The model's weak spots:** ikhfa against a clear noon (paper F1 0.45) and madd length (±1
