@@ -6,3 +6,4 @@ vendor/quran-transcript/build/
 *.egg-info/
 # secrets (reports bucket key, admin password hash, LAN address)
 .env
+.env.*

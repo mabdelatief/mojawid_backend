@@ -16,6 +16,10 @@ purge; bad-result reports into the private bucket `mojawid-reports` (its own key
 it) and the admin page at `/admin` (HTTP Basic, argon2) where «reviewed» deletes the recording.
 Contract: `docs/contracts/`.
 
+**Until further notice (user, 2026-10-17):** in place of phase 9, everything runs on this laptop
+and the web app is served at tajweed.codavvy.com through the lab's Cloudflare tunnel, behind its
+email allowlist, with production settings: `docs/deploy-laptop.md`.
+
 ## Context
 Mojawid needs a backend that gives the app:
 - the reference text with tajweed colours and word boundaries;
@@ -204,7 +208,7 @@ always on).
 | 6 | **API analyses end to end.** Worker adapter, idempotency table (migration 0003), analysis/warm-up services, hourly purge | Retry / timeout / idempotency tests with a fake worker (two concurrent POSTs → one worker call); limits; a dev run end to end, API → local worker |
 | 7 | **Reports + admin.** Migration 0004, object-store adapter, a private reports bucket on Linode Object Storage (dev uses it too; created in this phase, with its own access key), report routes, admin page, purge | Integration against the real private bucket: create → upload → view → "reviewed" deletes the audio → the row goes after 30 days |
 | 8 | **The worker on Modal** (needs a Modal account). `worker/modal_app.py`: an `@app.server` on an L4 in `eu`, scaling to zero with a ~300 s scaledown, models baked in at the pinned revisions, offline HF; the API switches with `WORKER_URL` | Laptop API → Modal works; cold start measured; warm-up hides it during a 60 s recording; L2 on the L4, with any bf16 differences recorded and discussed |
-| 9 | *Deferred until there's a Linode + mojawid.com:* production Dockerfile (API only, no torch), prod compose with TLS, CI, backups, real client IPs behind the proxy | Smoke test on the host; a backup restores |
+| 9 | *Deferred until there's a Linode + mojawid.com; meanwhile the laptop serves it (`docs/deploy-laptop.md`):* production Dockerfile (API only, no torch), prod compose with TLS, CI, backups, real client IPs behind the proxy | Smoke test on the host; a backup restores |
 
 **Coordination with the app.** When the contract draft lands (phase 2), run `ccwho MJW-APP`.
 If a session is live there, message it with the contract commit. If not, propose a `vk ask

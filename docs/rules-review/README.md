@@ -55,9 +55,11 @@ into `rules.py` (and the lab's table), the same way the earlier rulings did.
   - Logs: `journalctl --user -u mojawid-review`.
 - **The tunnel.** The lab's tunnel `tajweed-laptop` (`cloudflared-tajweed.service`) has one rule
   ahead of the lab's. The rule sends host `tajweed.codavvy.com`, path `^/mojawid(/.*)?$`, to
-  `http://localhost:8300`, and everything else still goes to the lab on :8000. The tunnel is
-  managed remotely, so the rule was added through the Cloudflare API with `CF_API_TOKEN` from
-  `/srv/homelab/.env` on the home box. The lab's code and service weren't touched.
+  `http://localhost:8300`. Everything else goes to the lab on :8000 (stopped since 2026-10-16),
+  and moves to the Mojawid web app on :8400 when it goes live (`docs/deploy-laptop.md`). The
+  tunnel is managed remotely, so the rule was added through the Cloudflare API with
+  `CF_API_TOKEN` from `/srv/homelab/.env` on the home box. The lab's code and service weren't
+  touched.
 - **The login.** The Access app for `tajweed.codavvy.com` covers every path, so the same
   allowlist applies. Add or remove a teacher under Zero Trust → Access → Applications. The
   service trusts `cf-access-authenticated-user-email` because only cloudflared can reach

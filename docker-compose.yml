@@ -1,8 +1,11 @@
-# Dev stack on this laptop: Postgres, the API and the analysis worker on the GPU. The API is
-# published on the Wi-Fi address (MOJAWID_LAN_IP, set in the git-ignored secrets file) and on
-# 127.0.0.1, never on 0.0.0.0, so it stays off Tailscale and ZeroTier. The worker and Postgres
-# are on 127.0.0.1 only. Object storage is the real Linode buckets. Production packaging is
-# phase 9.
+# The stack on this laptop: Postgres, the API, the analysis worker on the GPU, and the web
+# front that tajweed.codavvy.com reaches through the Cloudflare tunnel (docs/deploy-laptop.md).
+# The API is published on the Wi-Fi address (MOJAWID_LAN_IP, set in the git-ignored secrets
+# file) and on 127.0.0.1, never on 0.0.0.0, so it stays off Tailscale and ZeroTier. The worker,
+# Postgres and the web front are on 127.0.0.1 only. Object storage is the real Linode buckets.
+#
+# The API and worker run with the production settings in .env.deploy (git-ignored; real keys
+# and secrets, never the dev ones in git). The stack doesn't start without it.
 #
 #   docker compose up -d --build        # start or update
 #   docker compose logs -f mojawid_api  # follow
@@ -41,6 +44,8 @@ services:
     env_file:
       - path: .env
         required: false
+      - path: .env.deploy
+        required: true
     volumes:
       - ${HOME}/.cache/huggingface:/hf:ro
     ports:
@@ -67,6 +72,8 @@ services:
     env_file:
       - path: .env
         required: false
+      - path: .env.deploy
+        required: true
     ports:
       - "${MOJAWID_LAN_IP:?set MOJAWID_LAN_IP (the Wi-Fi address) in the secrets file}:8100:8100"
       - "127.0.0.1:8100:8100"
@@ -74,6 +81,35 @@ services:
       mojawid_postgres:
         condition: service_healthy
     restart: unless-stopped
+
+  mojawid_web:
+    image: nginx:1.29-alpine
+    container_name: mojawid_web
+    volumes:
+      - ./docker/web.nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./docker/web.proxy.conf:/etc/nginx/mojawid_proxy.conf:ro
+      # the Flutter web build, put there by tools/deploy_web.sh
+      - ${HOME}/.local/share/mojawid-web:/usr/share/nginx/html:ro
+    ports:
+      - "127.0.0.1:8400:80"
+    networks:
+      default:
+        # the API believes forwarding headers from this address only (MOJAWID_TRUSTED_PROXY_NETWORKS)
+        ipv4_address: 172.30.0.10
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    depends_on:
+      - mojawid_api
+    restart: unless-stopped
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16
 
 volumes:
   mojawid_pgdata:

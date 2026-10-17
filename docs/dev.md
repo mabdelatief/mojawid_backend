@@ -5,7 +5,8 @@ Dev runs on this laptop. There is no staging; production packaging comes last
 
 ## The running dev stack (for the app)
 
-`docker compose up -d --build` runs three containers, all `restart: unless-stopped`, so they
+`docker compose up -d --build` runs four containers (the fourth, `mojawid_web`, is the public
+front: `docs/deploy-laptop.md`), all `restart: unless-stopped`, so they
 come back after a reboot:
 - `mojawid_postgres`;
 - `mojawid_api`: on start it migrates the schema, then serves on :8100;
@@ -19,13 +20,17 @@ come back after a reboot:
 | | |
 |---|---|
 | Base URL | `http://192.168.1.17:8100` (this laptop's Wi-Fi address; `MOJAWID_LAN_IP` in the secrets file) |
-| `X-Api-Key` | `mojawid-dev-key` |
+| `X-Api-Key` | the `dev` key from `.env.deploy` (sent by message; `mojawid-dev-key` works only against an API run on the host, below) |
 | `X-Install-Id` | a UUID the app makes on first launch |
 | Contract | `docs/contracts/api.md`, `docs/contracts/openapi.json` |
 | Admin page | `http://192.168.1.17:8100/admin`, user `admin`, password in `~/.config/mojawid/admin-password` on this laptop |
 
 - **Reachability:** the API answers on the Wi-Fi address and on 127.0.0.1 only. It isn't on
-  Tailscale or ZeroTier, and nothing is public.
+  Tailscale or ZeroTier. The public web app at tajweed.codavvy.com reaches it through the
+  `mojawid_web` front: `docs/deploy-laptop.md`.
+- **Production settings:** the containers run with `.env.deploy` (real keys, production mode).
+  The dev key, dev identity secret and dev worker token in git work only for an API or worker
+  run on the host.
 - **Plain HTTP:** the Android app needs cleartext allowed for this host in dev, and iOS an ATS
   exception.
 - **Address changes:** if the router gives the laptop another address, update `MOJAWID_LAN_IP`
@@ -35,7 +40,7 @@ come back after a reboot:
 docker compose ps                       # state and health
 docker compose logs -f mojawid_api      # the API's log (JSON; never audio or query strings)
 docker compose up -d --build            # after a code change
-docker compose down                     # stop all three (the database volume stays)
+docker compose down                     # stop all four (the database volume stays)
 ```
 
 The sections below run the API or the worker on the host instead, for development.
