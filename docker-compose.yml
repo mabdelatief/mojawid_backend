@@ -65,10 +65,16 @@ services:
       dockerfile: docker/api.Dockerfile
     image: mojawid_api:dev
     container_name: mojawid_api
+    # runs as the laptop's user so the kept recordings belong to it (and the backup can read them)
+    user: "${MOJAWID_UID:-1000}:${MOJAWID_GID:-1000}"
     environment:
       MOJAWID_DATABASE_URL: postgresql+asyncpg://mojawid:mojawid@mojawid_postgres:5432/mojawid
       MOJAWID_WORKER_URL: http://mojawid_worker:8200
       MOJAWID_LOG_FORMAT: json
+      MOJAWID_RECORDINGS_DIR: /recordings
+    volumes:
+      # every recording, kept during closed testing (docs/deploy-laptop.md); create it first
+      - ${HOME}/.local/share/mojawid-recordings:/recordings
     env_file:
       - path: .env
         required: false

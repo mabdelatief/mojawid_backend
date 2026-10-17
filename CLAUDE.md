@@ -37,9 +37,13 @@ in `docs/architecture.md`; follow it, and discuss before changing it.
   - `obadx/muaalem-model-v3_2` at `01a1ef9fbe40d144ef845101e89ff924aed3fef5`;
   - `obadx/recitation-segmenter-v2` at `5ee90364e7090ea6eb9dffe80353bed06996a196`.
   A new revision changes what the model hears, so it is only taken on purpose.
-- **Never store a user's recording.** The audio is analysed, then discarded. The one exception
-  is a "bad result" report the user explicitly agreed to send. It is kept only to investigate,
-  and deleted after review. Logs must not hold audio either.
+- **Recordings: kept only during closed testing.** The user's decision (2026-10-17): while
+  Mojawid is in closed testing on this laptop, behind the Cloudflare allowlist, every recording
+  and its result is kept on this machine, with who made it. Any tester can list and play any of
+  them, and the app asks for consent. Only `app/recordings/` may store them, plus the "bad
+  result" reports in `app/reports/`. Logs must never hold audio, and audio is never decoded to
+  disk. Before Mojawid opens to the public, this goes back to "analysed, then discarded"; ask
+  the user.
 - **No accounts, no login, no payments.** API keys and rate limits protect the service. They
   must not get in a normal user's way. Details are to be agreed with the user.
 - **What is correct tajweed is the teachers' call, not ours.** The user's sisters are licensed
@@ -113,8 +117,8 @@ past it. If a rule seems wrong, say so to the user.
   analysis.
 
 ### Mojawid rules in code
-- **Never store a recording** *(scan)*. Outside the bad-result-report code (`…/reports/`),
-  none of these is allowed:
+- **Recordings are stored only in `app/recordings/` and `app/reports/`** *(scan)*. Anywhere
+  else in `app/`, none of these is allowed:
   - writing bytes to disk: `open(…, "wb")`, `.write_bytes()`, a temp file with `delete=False`,
     `mkstemp`;
   - a `LargeBinary`/`BYTEA` column;

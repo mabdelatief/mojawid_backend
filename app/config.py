@@ -94,6 +94,10 @@ class Settings(BaseSettings):
     report_keep_after_review_days: int = 30  # the rest of a report, after its audio is deleted
     reports_per_install_day: int = 10
     reports_per_ip_day: int = 30
+
+    # --- Recordings: every one kept while in closed testing (app/recordings/) ---
+    recordings_dir: str = "~/.local/share/mojawid-recordings"
+    recordings_page_size: int = 50
     # The admin page (/admin): HTTP Basic against an argon2 hash
     # (`python -m app.reports.hash_password`). No hash: the page doesn't exist.
     admin_user: str = "admin"

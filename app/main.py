@@ -71,7 +71,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_origins=list(resolved.cors_origins),
         allow_methods=["GET", "POST", "PUT"],
         allow_headers=["Content-Type", "X-Api-Key", "X-Install-Id", resolved.request_id_header],
-        expose_headers=[resolved.request_id_header, "Retry-After"],
+        expose_headers=[resolved.request_id_header, "Retry-After", "X-Recording-Id"],
     )
     register_exception_handlers(app)
     app.include_router(api_router)

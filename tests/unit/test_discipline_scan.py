@@ -162,6 +162,13 @@ def test_reports_code_may_keep_a_recording(tmp_tree: Path) -> None:
     assert run_rule(mojawid.check_no_stored_audio, path) == []
 
 
+def test_recordings_code_may_keep_a_recording(tmp_tree: Path) -> None:
+    path = write(tmp_tree, "app/recordings/store.py", "p.write_bytes(data)\n")
+    assert run_rule(mojawid.check_no_stored_audio, path) == []
+    other = write(tmp_tree, "app/services/x.py", "p.write_bytes(data)\n")
+    assert run_rule(mojawid.check_no_stored_audio, other) != []
+
+
 def test_pins_module_may_hold_the_pinned_revision(tmp_tree: Path) -> None:
     path = write(tmp_tree, "app/model_pins.py", f"ID = 'obadx/muaalem-model-v3_2'\nR = '{PIN}'\n")
     assert run_rule(mojawid.check_pinned_models, path) == []

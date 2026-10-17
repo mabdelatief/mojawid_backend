@@ -72,7 +72,11 @@ Flutter app ──HTTPS──▶ API (app/, FastAPI)  ──Postgres (recitation
   with locals, or ffmpeg's stderr.
 - **The compressed upload (< 2 MiB) goes to Modal, never decoded PCM.** Modal sends anything
   over 2 MiB through its US object storage.
-- **Report audio is the only audio ever stored,** and only with consent: in
+- **During closed testing every recording is kept** (user, 2026-10-17). `app/recordings/`
+  writes the upload as sent to `~/.local/share/mojawid-recordings/` on this laptop, with its
+  result and who made it. Testers can list and play all of them (`docs/deploy-laptop.md`), and
+  it's copied daily to the home lab. Nothing else writes audio, and it is never decoded to disk.
+- **Report audio is the only other audio stored,** and only with consent: in
   `app/reports/`, in a private bucket. It's deleted the moment a report is marked reviewed;
   the rest of the report goes after 30 days (user's choice).
 

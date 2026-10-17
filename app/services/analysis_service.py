@@ -3,9 +3,14 @@
 A recording is analysed once per (install, client_id); the result is kept a day, so a resend
 after a dropped connection gets it back without a second GPU run or a second count against the
 limits. Claims are committed before the worker is called, so of two simultaneous sends one runs
-and the other gets 409. The recording is passed through from memory and never stored or logged.
+and the other gets 409.
+
+While Mojawid is in closed testing, each recording is also kept with its outcome, for every tester
+to see (app/recordings/, CLAUDE.md). It is saved when the attempt is claimed, so a recording whose
+analysis fails or times out is kept too. It is never logged.
 """
 
+import dataclasses
 import logging
 import time
 import uuid
@@ -20,6 +25,7 @@ from app.config import Settings
 from app.contracts.analysis import AnalysisPending, AnalysisRequest, AnalysisResult
 from app.db.models.analysis import DONE, FAILED, Analysis
 from app.errors import AppError
+from app.recordings.keeper import RecordingKeeper
 from app.repositories.analysis_repo import AnalysisRepo
 from app.services.rate_limit_service import Limit, RateLimitService
 
@@ -57,28 +63,43 @@ def _stored_error(row: Analysis) -> AppError:
     )
 
 
+@dataclasses.dataclass(frozen=True)
+class Upload:
+    """The recording as received."""
+
+    audio: bytes
+    content_type: str | None
+
+
+@dataclasses.dataclass(frozen=True)
+class Analysed:
+    result: AnalysisResult
+    recording_id: uuid.UUID | None  # the kept recording (X-Recording-Id)
+
+
 class AnalysisService:
     def __init__(self, session: AsyncSession, settings: Settings, worker: Worker) -> None:
         self.session = session
         self.settings = settings
         self.worker = worker
         self.repo = AnalysisRepo(session)
+        self.keeper = RecordingKeeper(session, settings)
 
-    async def analyse(
-        self, client: Client, request: AnalysisRequest, audio: bytes
-    ) -> AnalysisResult:
-        """The result for one recording. Raises AppError."""
+    async def analyse(self, client: Client, request: AnalysisRequest, upload: Upload) -> Analysed:
+        """The result for one recording, and the kept recording's id. Raises AppError."""
         self._check_text(request)
         key = (client.install_hash, request.client_id)
         row = await self._current(*key)
         if row is not None:
             if row.status != "running" or not await self._take_over(*key):
-                return self._replay(row)
+                return Analysed(self._replay(row), await self.keeper.id_for(client, key[1]))
         else:
             await self._count(client)
             if not await self._claim(*key):
-                return self._replay(await self._current(*key))
-        return await self._run(key, request, audio)
+                return Analysed(self._replay(await self._current(*key)), None)
+        rid = await self.keeper.keep(client, request, upload.audio, upload.content_type)
+        await self.session.commit()
+        return Analysed(await self._run(key, request, upload.audio, rid), rid)
 
     async def result(
         self, client: Client, client_id: uuid.UUID
@@ -150,31 +171,35 @@ class AnalysisService:
             ) from exc
 
     async def _run(
-        self, key: tuple[str, uuid.UUID], request: AnalysisRequest, audio: bytes
+        self, key: tuple[str, uuid.UUID], request: AnalysisRequest, audio: bytes, rid: uuid.UUID
     ) -> AnalysisResult:
         t0 = time.perf_counter()
         try:
             raw = await self.worker.analyze(audio, request.worker_params())
             result = AnalysisResult.model_validate(raw)
         except AppError as exc:
-            await self._failed(key, exc)
+            await self._failed(key, exc, rid)
             _log(request, exc.code, t0)
             raise
         except Exception:
             await self.repo.release(*key)
+            await self.keeper.failed(rid, "internal_error", "The analysis failed.")
             await self.session.commit()
             _log(request, "internal_error", t0)
             raise
-        await self.repo.finish(*key, result.model_dump(mode="json"))
+        kept = result.model_dump(mode="json")
+        await self.repo.finish(*key, kept)
+        await self.keeper.finished(rid, kept)
         await self.session.commit()
         _log(request, "ok", t0)
         return result
 
-    async def _failed(self, key: tuple[str, uuid.UUID], exc: AppError) -> None:
+    async def _failed(self, key: tuple[str, uuid.UUID], exc: AppError, rid: uuid.UUID) -> None:
         if exc.code in TRANSIENT:
             await self.repo.release(*key)
         else:
             await self.repo.fail(*key, exc.code, exc.message, exc.status_code)
+        await self.keeper.failed(rid, exc.code, exc.message)
         await self.session.commit()
 
 

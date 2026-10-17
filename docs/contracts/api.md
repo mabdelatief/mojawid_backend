@@ -45,6 +45,8 @@ analyses and bad-result reports.
 | 404 | `not_found` | No such reciter (or route) |
 | 404 | `analysis_not_found` | No analysis with this `client_id` for this install (or it's over 24 h old) |
 | 404 | `report_not_found` | No such report for this install |
+| 404 | `recording_not_found` | No such kept recording (or it was deleted) |
+| 400 | `invalid_cursor` | `before` on `/v1/recordings` isn't a `next_before` value |
 | 409 | `report_audio_exists` | The report already has its recording |
 | 410 | `report_upload_expired` | The recording came over an hour after the report |
 | 409 | `analysis_in_progress` | This `client_id` is being analysed right now. Ask `GET /v1/analyses/{client_id}` |
@@ -241,8 +243,11 @@ Analyse one recording.
   runs it.
 - **Limits:** 30 analyses an hour and 200 a day per install, 120 an hour per network, and a
   daily total for the whole service (`analysis_busy`).
-- **Privacy:** the recording is analysed in memory and discarded; it's never stored or logged.
-  What's kept for 24 h is the result.
+- **Kept during closed testing** (changed 2026-10-17, the user's decision): the recording is
+  analysed in memory, **and** kept on the server with its result and who made it. Every tester
+  can list and play it (`/v1/recordings`, below). It's never logged. The response carries
+  `X-Recording-Id`, the kept recording's id. **The app must say so before the first recording**
+  (consent), and on the Record screen.
 
 ### `GET /v1/analyses/{client_id}`
 - `200`: the result, as `POST` returned it;
@@ -331,6 +336,34 @@ The «نتيجة غير صحيحة؟» flow. Send it **only after the user ticke
   - it's deleted the moment the report is reviewed;
   - the rest of the report is deleted 30 days after review;
   - a report whose recording never arrives is deleted after an hour.
+
+### `GET /v1/recordings` · `GET /v1/recordings/{id}` · `GET /v1/recordings/{id}/audio`
+Added 2026-10-17, for closed testing: every recording ever analysed, from every tester, with its
+result. Same headers as every `/v1` route.
+
+- **`GET /v1/recordings?limit=&before=`**: newest first, `limit` 1–100 (default 50).
+  `{"items": [...], "next_before": "<cursor>" | null}`. For the next page, pass `next_before`
+  back as `before`. Each item:
+
+  ```json
+  {"id": "…", "client_id": "…", "created_at": "2026-10-17T18:30:00Z", "tester": "m.abdelatief",
+   "mode": "manual", "text": {"sura": 112, "aya_start": 1, "aya_end": 4}, "duration_s": 9.4,
+   "summary": {"mistakes": 0, "uncertain": 1, "exact_match": false},
+   "status": "done", "error_code": null}
+  ```
+
+  - `tester`: the part of the tester's login email before «@». It's null for a phone build on the
+    Wi-Fi, which has no login.
+  - `text`: the detected text in auto mode, otherwise the chosen one.
+  - `status`: `running`, `done`, or `failed`. A failed one has `error_code` (for example
+    `audio_unreadable`) and no `summary`. Its recording is still kept and playable.
+- **`GET /v1/recordings/{id}`**: the same fields, plus `result` (exactly what
+  `POST /v1/analyses` returned; open it with the Result screen) and `error_message`.
+- **`GET /v1/recordings/{id}/audio`**: the file exactly as it was uploaded, with its
+  `Content-Type`. Range requests work. It needs the same headers, so on the web, fetch it with
+  them and play the bytes (≤ 2 MiB); an `<audio src>` can't send headers.
+- **Who made it** is stored as the install and the login email, so "only my recordings" can come
+  later as a filter. Deleting happens only on the admin page.
 
 ## Coming
 

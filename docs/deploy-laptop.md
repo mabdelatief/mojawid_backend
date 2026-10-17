@@ -59,6 +59,31 @@ passes it through and drops any `X-Forwarded-For`. The API believes it only from
 forged header sent straight to :8100 is ignored, and the per-IP limit then falls on the
 connection's own address.
 
+## Kept recordings (closed testing)
+
+The user's decision (2026-10-17): while Mojawid is in closed testing on this laptop, **every
+recording and its result is kept**, with who made it, and every tester can list and play them in
+the app (`/v1/recordings`, `docs/contracts/api.md`). Before opening to the public this goes back
+to "analysed, then discarded" (CLAUDE.md).
+
+- **Audio:** `~/.local/share/mojawid-recordings/<id>.<ext>`, the upload exactly as sent. The folder
+  is mounted into `mojawid_api` at `/recordings`. The API runs as this laptop's user, so the files
+  are owned by it. If the folder is ever removed, create it again before `docker compose up`;
+  otherwise Docker creates it owned by root.
+- **Results and who made it:** the `recording` table in Postgres (migration 0005).
+  - `install_hash` is the install, as its HMAC.
+  - `tester_email` is the Cloudflare Access login. It's believed only from the web front, so
+    phone builds on the Wi-Fi have none.
+  - The app shows the name part only.
+- **Delete:** the admin page, `http://192.168.1.17:8100/admin/recordings` (Wi-Fi only). It
+  removes the row and the file. The next backup run removes them from the copy too.
+- **Backup:** `tools/recordings/backup.sh`, daily at 03:10 (`mojawid-recordings-backup.timer`, a
+  user unit). It sends the audio folder to `homelab:/srv/backup/mojawid-recordings/audio/` as a
+  mirror, and every row with its result to `homelab:/srv/backup/mojawid-recordings/recordings.json`,
+  replaced on each run. Away from home it fails and the next run catches up. Run it by hand
+  with `tools/recordings/backup.sh`.
+- **Size:** at most 2 MiB a recording; 1,000 recordings are under 2 GB.
+
 ## Settings and keys (`.env.deploy`)
 
 The API and worker load `.env.deploy` after `.env`. It is git-ignored, mode 600, and compose

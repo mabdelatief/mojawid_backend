@@ -8,6 +8,8 @@ from app.api.routes.reciters import router as reciters_router
 from app.api.routes.text import router as text_router
 from app.api.routes.warmup import router as warmup_router
 from app.errors import ERROR_RESPONSES
+from app.recordings.admin_routes import router as recordings_admin_router
+from app.recordings.routes import router as recordings_router
 from app.reports.admin_routes import router as admin_router
 from app.reports.routes import router as reports_router
 
@@ -18,4 +20,6 @@ api_router.include_router(text_router)
 api_router.include_router(analyses_router)
 api_router.include_router(warmup_router)
 api_router.include_router(reports_router)
+api_router.include_router(recordings_router)
 api_router.include_router(admin_router)
+api_router.include_router(recordings_admin_router)

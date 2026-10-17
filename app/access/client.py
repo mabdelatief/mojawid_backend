@@ -4,6 +4,8 @@
 - `X-Install-Id`: a random UUID the app creates on first launch. Only its HMAC is kept.
 - The client IP: from the proxy's headers when the peer is a trusted proxy, else the socket.
   IPv6 is bucketed by /64, the unit one machine actually gets. Only its HMAC is kept.
+- The tester's email: Cloudflare Access's header, believed only from a trusted proxy (the web
+  front). It says who made a recording kept during closed testing (app/recordings/).
 """
 
 import hashlib
@@ -17,6 +19,8 @@ from fastapi import status
 from app.config import Settings
 from app.errors import AppError
 
+ACCESS_EMAIL_HEADER = "cf-access-authenticated-user-email"
+
 
 @dataclass(frozen=True)
 class Client:
@@ -25,6 +29,7 @@ class Client:
     platform: str
     install_hash: str
     ip_hash: str
+    tester_email: str | None = None
 
 
 def identify(
@@ -42,6 +47,7 @@ def identify(
         platform=platform,
         install_hash=_hmac(settings, f"install:{install}"),
         ip_hash=_hmac(settings, f"ip:{ip}"),
+        tester_email=tester_email(settings, peer, headers),
     )
 
 
@@ -89,6 +95,13 @@ def client_ip(settings: Settings, peer: str | None, headers: dict[str, str]) -> 
         if first:
             return first
     return peer or "-"
+
+
+def tester_email(settings: Settings, peer: str | None, headers: dict[str, str]) -> str | None:
+    """The Cloudflare Access login of the caller, only when the request came through the web
+    front; anyone else could write the header."""
+    email = headers.get(ACCESS_EMAIL_HEADER, "").strip().lower()
+    return email if email and "@" in email and _trusted(settings, peer) else None
 
 
 def rate_limit_ip(raw: str) -> str:

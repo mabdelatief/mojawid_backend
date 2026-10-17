@@ -5,6 +5,7 @@ from app.db.base import Base
 from app.db.models.analysis import Analysis
 from app.db.models.rate_limit import RateLimitCounter
 from app.db.models.recitation import Recitation, RecitationAyahTiming
+from app.db.models.recording import Recording
 from app.db.models.report import Report
 
 metadata = Base.metadata
@@ -14,6 +15,7 @@ __all__ = [
     "RateLimitCounter",
     "Recitation",
     "RecitationAyahTiming",
+    "Recording",
     "Report",
     "metadata",
 ]

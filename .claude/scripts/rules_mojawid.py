@@ -21,8 +21,9 @@ from scan_common import (
     under,
 )
 
-# The bad-result report code is the one place allowed to keep a recording (with consent).
-_REPORTS_SEGMENT = "/reports/"
+# The places allowed to keep a recording: the bad-result reports (with consent), and, while
+# Mojawid is in closed testing, every recording (CLAUDE.md, the user's decision 2026-10-17).
+_STORING_SEGMENTS = ("/reports/", "/recordings/")
 
 _AUDIO_NAMES = re.compile(r"audio|upload|recording|wave|samples|body|payload", re.IGNORECASE)
 _LOG_METHODS = {"debug", "info", "warning", "warn", "error", "exception", "critical", "log"}
@@ -95,8 +96,10 @@ def _stores_audio(node: ast.AST) -> str | None:
 
 
 def check_no_stored_audio(file: Path, added: set[int]) -> LineFindings:
-    """Never store a recording: no bytes to disk, no binary columns, no audio in logs."""
-    tree = parse(file) if _app_code(file) and _REPORTS_SEGMENT not in str(file) else None
+    """Recordings stored only by reports/ and recordings/: no bytes to disk, no binary columns, no
+    audio in logs anywhere else."""
+    allowed = any(seg in str(file) for seg in _STORING_SEGMENTS)
+    tree = parse(file) if _app_code(file) and not allowed else None
     if tree is None:
         return []
     out: LineFindings = []

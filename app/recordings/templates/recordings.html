@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Recordings{% endblock %}
+{% block body %}
+<p><a href="/admin">← Bad-result reports</a></p>
+<h1>Recordings</h1>
+<p class="muted">Every recording is kept during closed testing, with its result, and every tester
+can play it in the app. «Delete» removes the recording and its result for good. The newest
+{{ shown }} are shown.</p>
+<div class="scroll"><table>
+  <tr><th>Recorded</th><th>Tester</th><th>Text</th><th>Mode</th><th>Result</th><th>Audio</th><th></th></tr>
+  {% for row in rows %}{% set r = row.item %}
+  <tr>
+    <td>{{ r.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+    <td>{{ row.email }}</td>
+    <td>{{ row.text }}</td>
+    <td>{{ r.mode }}</td>
+    <td>{% if r.status == "done" and r.summary %}{{ r.summary.mistakes }} mistakes, {{ r.summary.uncertain }} uncertain{% elif r.status == "failed" %}<span class="tag open">{{ r.error_code }}</span>{% else %}<span class="muted">running</span>{% endif %}</td>
+    <td><audio controls preload="none" src="/admin/recordings/{{ r.id }}/audio"></audio><span class="muted">{{ row.kb }} KB</span></td>
+    <td><form method="post" action="/admin/recordings/{{ r.id }}/delete" onsubmit="return confirm('Delete this recording and its result for good?')">
+      <input type="hidden" name="csrf" value="{{ row.csrf_delete }}"><button class="danger">Delete</button></form></td>
+  </tr>
+  {% else %}
+  <tr><td colspan="7" class="muted">No recordings yet.</td></tr>
+  {% endfor %}
+</table></div>
+{% endblock %}

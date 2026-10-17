@@ -574,6 +574,303 @@
         "title": "ReciterTimings",
         "type": "object"
       },
+      "RecordingDetail": {
+        "description": "One recording with its full result, exactly as POST /v1/analyses returned it.",
+        "properties": {
+          "client_id": {
+            "description": "The app's id for the attempt (POST /v1/analyses).",
+            "format": "uuid",
+            "title": "Client Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "duration_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration S"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "manual",
+              "auto"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "enum": [
+              "running",
+              "done",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Summary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null until analysed, or when it failed."
+          },
+          "tester": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Who recorded it: the part of the tester's login email before «@»; null for a phone build on the Wi-Fi, which has no login.",
+            "title": "Tester"
+          },
+          "text": {
+            "$ref": "#/components/schemas/RecordingText"
+          }
+        },
+        "required": [
+          "id",
+          "client_id",
+          "created_at",
+          "tester",
+          "mode",
+          "text",
+          "duration_s",
+          "summary",
+          "status",
+          "error_code",
+          "result",
+          "error_message"
+        ],
+        "title": "RecordingDetail",
+        "type": "object"
+      },
+      "RecordingItem": {
+        "description": "One kept recording, as listed.",
+        "properties": {
+          "client_id": {
+            "description": "The app's id for the attempt (POST /v1/analyses).",
+            "format": "uuid",
+            "title": "Client Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "duration_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration S"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "manual",
+              "auto"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "running",
+              "done",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Summary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null until analysed, or when it failed."
+          },
+          "tester": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Who recorded it: the part of the tester's login email before «@»; null for a phone build on the Wi-Fi, which has no login.",
+            "title": "Tester"
+          },
+          "text": {
+            "$ref": "#/components/schemas/RecordingText"
+          }
+        },
+        "required": [
+          "id",
+          "client_id",
+          "created_at",
+          "tester",
+          "mode",
+          "text",
+          "duration_s",
+          "summary",
+          "status",
+          "error_code"
+        ],
+        "title": "RecordingItem",
+        "type": "object"
+      },
+      "RecordingPage": {
+        "description": "Newest first. Pass `next_before` as `before` for the next page; null on the last one.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RecordingItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_before": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Before"
+          }
+        },
+        "required": [
+          "items",
+          "next_before"
+        ],
+        "title": "RecordingPage",
+        "type": "object"
+      },
+      "RecordingText": {
+        "description": "The text checked: the one detected in auto mode, else the one chosen; null fields when\nneither is known (an auto recording that failed).",
+        "properties": {
+          "aya_end": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aya End"
+          },
+          "aya_start": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aya Start"
+          },
+          "sura": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sura"
+          }
+        },
+        "required": [
+          "sura",
+          "aya_start",
+          "aya_end"
+        ],
+        "title": "RecordingText",
+        "type": "object"
+      },
       "Reference": {
         "description": "The text to show, with tajweed colours. Positions index into `uthmani`.",
         "properties": {
@@ -1097,7 +1394,7 @@
     },
     "/v1/analyses": {
       "post": {
-        "description": "Analyse the recording sent as the body (≤ 2 MiB, any common format). Resending with the\nsame client_id returns the first result; it is computed once, hence POST with 200.",
+        "description": "Analyse the recording sent as the body (≤ 2 MiB, any common format). Resending with the\nsame client_id returns the first result; it is computed once, hence POST with 200. The kept\nrecording's id is in the `X-Recording-Id` header.",
         "operationId": "post_analysis",
         "parameters": [
           {
@@ -1815,6 +2112,376 @@
         "summary": "Reciter Timings",
         "tags": [
           "reciters"
+        ]
+      }
+    },
+    "/v1/recordings": {
+      "get": {
+        "description": "Every kept recording, newest first, from every tester.",
+        "operationId": "list_recordings",
+        "parameters": [
+          {
+            "description": "`next_before` of the previous page.",
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "`next_before` of the previous page.",
+              "title": "Before"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 100,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-install-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Install-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordingPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid API key"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          }
+        },
+        "summary": "List Recordings",
+        "tags": [
+          "recordings"
+        ]
+      }
+    },
+    "/v1/recordings/{recording_id}": {
+      "get": {
+        "description": "One recording with its full result (or its error).",
+        "operationId": "get_recording",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "recording_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Recording Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-install-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Install-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordingDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid API key"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          }
+        },
+        "summary": "Get Recording",
+        "tags": [
+          "recordings"
+        ]
+      }
+    },
+    "/v1/recordings/{recording_id}/audio": {
+      "get": {
+        "description": "The audio exactly as it was uploaded, with its content type. Range requests work.",
+        "operationId": "get_recording_audio",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "recording_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Recording Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-install-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Install-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "audio/*": {}
+            },
+            "description": "The recording as it was sent."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid API key"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          }
+        },
+        "summary": "Get Recording Audio",
+        "tags": [
+          "recordings"
         ]
       }
     },
