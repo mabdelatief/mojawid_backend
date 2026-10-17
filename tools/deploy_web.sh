@@ -26,8 +26,21 @@ if [[ ! -f "$SRC/index.html" ]]; then
     exit 1
 fi
 
+# The app's code is fetched under addresses that change with every build. Flutter keeps the
+# names flutter_bootstrap.js and main.dart.js, and Cloudflare's edge kept serving the first
+# build's .js after a deploy without asking the server (2026-10-17). index.html itself always
+# reaches the server, so it carries the new addresses.
+VERSION="$(cat "$SRC/main.dart.js" "$SRC/flutter_bootstrap.js" | sha256sum | cut -c1-12)"
+BOOT_FROM='"mainJsPath":"main.dart.js"'
+INDEX_FROM='src="flutter_bootstrap.js"'
+grep -qF "$BOOT_FROM" "$SRC/flutter_bootstrap.js" || { echo "no $BOOT_FROM in flutter_bootstrap.js" >&2; exit 1; }
+grep -qF "$INDEX_FROM" "$SRC/index.html" || { echo "no $INDEX_FROM in index.html" >&2; exit 1; }
+
 rsync -a --delete --exclude /index.html "$SRC/" "$DEST/"
-cp "$SRC/index.html" "$DEST/index.html.new"
+sed "s|$BOOT_FROM|\"mainJsPath\":\"main.dart.js?v=$VERSION\"|" "$SRC/flutter_bootstrap.js" \
+    > "$DEST/flutter_bootstrap.js"
+sed "s|$INDEX_FROM|src=\"flutter_bootstrap.js?v=$VERSION\"|" "$SRC/index.html" \
+    > "$DEST/index.html.new"
 mv "$DEST/index.html.new" "$DEST/index.html"
 chmod -R a+rX "$DEST"
-echo "deployed $SRC to $DEST"
+echo "deployed $SRC to $DEST (build $VERSION)"

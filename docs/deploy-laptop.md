@@ -38,6 +38,12 @@ with them.
   - A missing file is a 404.
   - Everything is sent `Cache-Control: no-cache`, with an ETag. Flutter keeps `main.dart.js` and
     most other names across builds, so long caching would serve old code after an update.
+  - **The app's code gets a new address with each build.** `tools/deploy_web.sh` tags
+    `flutter_bootstrap.js` in `index.html`, and `main.dart.js` in the bootstrap, with
+    `?v=<build hash>`. This is needed because Cloudflare's edge kept serving the first build's
+    `.js` files after a deploy without asking the server (2026-10-17). We can't purge that cache:
+    the API token has no zone permissions. `index.html` always reaches the server, so the new
+    addresses do too.
 - **`/v1/`, `/healthz`**: proxied to the API.
   - The recording streams to the API (`proxy_request_buffering off`), and results stay in
     memory (`proxy_max_temp_file_size 0`). Nothing a user sends touches the disk.
