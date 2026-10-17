@@ -17,8 +17,8 @@ it) and the admin page at `/admin` (HTTP Basic, argon2) where «reviewed» delet
 Contract: `docs/contracts/`.
 
 **Until further notice (user, 2026-10-17):** in place of phase 9, everything runs on this laptop
-and the web app is served at tajweed.codavvy.com through the lab's Cloudflare tunnel, behind its
-email allowlist, with production settings: `docs/deploy-laptop.md`.
+and the web app is served at tajweed.codavvy.com (live since 2026-10-17) through the lab's
+Cloudflare tunnel, behind its email allowlist, with production settings: `docs/deploy-laptop.md`.
 
 ## Context
 Mojawid needs a backend that gives the app:

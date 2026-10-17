@@ -4,10 +4,8 @@ The user's decision (2026-10-17): until further notice, everything runs on this 
 web app is served at **https://tajweed.codavvy.com** through the Cloudflare tunnel that used to
 serve the lab. It stands in for phase 9 (Linode) in `docs/architecture.md` for now.
 
-**Status:** the stack runs with production settings, and the web front is ready on
-127.0.0.1:8400 with a placeholder page. **The tunnel still sends the root to the retired lab
-(:8000)**, so nothing public has changed yet. It switches when the first Flutter web build is
-deployed (below).
+**Status:** live since 2026-10-17. The first Flutter web build is deployed, and the tunnel's
+catch-all points at the web front (:8400) instead of the retired lab (:8000).
 
 ## What runs where
 
@@ -22,8 +20,8 @@ deployed (below).
 **The tunnel** `tajweed-laptop` (`cloudflared-tajweed.service`, a user unit; the token is in
 `~/.config/cloudflared/tajweed-laptop.token`) has two rules for host `tajweed.codavvy.com`:
 1. path `^/mojawid(/.*)?$` → `http://localhost:8300` (the review page);
-2. everything else → today `http://localhost:8000` (the lab, stopped), from the switch
-   `http://localhost:8400`.
+2. everything else → `http://localhost:8400` (the web front; it was the lab's :8000 until
+   2026-10-17).
 
 It's managed remotely: rules change through the Cloudflare API, with `CF_API_TOKEN` from
 `/srv/homelab/.env` on the home box (`docs/rules-review/README.md` did it the same way).
@@ -91,7 +89,7 @@ as well.
 `docker compose ps` shows all four containers. All are `restart: unless-stopped`, so they come
 back after a reboot.
 
-## Going live (once, when the first web build exists)
+## Going live (done 2026-10-17; kept for a rebuild of the tunnel)
 
 1. `tools/deploy_web.sh <build/web>`, then try it on `http://127.0.0.1:8400`, including a
    recording.

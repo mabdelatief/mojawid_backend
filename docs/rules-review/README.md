@@ -55,8 +55,8 @@ into `rules.py` (and the lab's table), the same way the earlier rulings did.
   - Logs: `journalctl --user -u mojawid-review`.
 - **The tunnel.** The lab's tunnel `tajweed-laptop` (`cloudflared-tajweed.service`) has one rule
   ahead of the lab's. The rule sends host `tajweed.codavvy.com`, path `^/mojawid(/.*)?$`, to
-  `http://localhost:8300`. Everything else goes to the lab on :8000 (stopped since 2026-10-16),
-  and moves to the Mojawid web app on :8400 when it goes live (`docs/deploy-laptop.md`). The
+  `http://localhost:8300`. Everything else goes to the Mojawid web app on :8400 since
+  2026-10-17 (`docs/deploy-laptop.md`); before that it went to the lab on :8000. The
   tunnel is managed remotely, so the rule was added through the Cloudflare API with
   `CF_API_TOKEN` from `/srv/homelab/.env` on the home box. The lab's code and service weren't
   touched.
