@@ -101,16 +101,14 @@ class AnalysisService:
         await self.session.commit()
         return Analysed(await self._run(key, request, upload.audio, rid), rid)
 
-    async def result(
-        self, client: Client, client_id: uuid.UUID
-    ) -> AnalysisResult | AnalysisPending:
-        """GET: the result, still running, the stored error, or 404."""
+    async def result(self, client: Client, client_id: uuid.UUID) -> Analysed | AnalysisPending:
+        """GET: the result and the kept recording's id, still running, the stored error, or 404."""
         row = await self._current(client.install_hash, client_id)
         if row is None:
             raise not_found()
         if row.status == "running":
             return AnalysisPending()
-        return self._replay(row)
+        return Analysed(self._replay(row), await self.keeper.id_for(client, client_id))
 
     def _check_text(self, request: AnalysisRequest) -> None:
         if request.mode != "manual" or request.aya_start is None:

@@ -252,7 +252,8 @@ Analyse one recording.
   (consent), and on the Record screen.
 
 ### `GET /v1/analyses/{client_id}`
-- `200`: the result, as `POST` returned it;
+- `200`: the result, as `POST` returned it, with the same `X-Recording-Id` header (added
+  2026-10-18);
 - `202`: `{"status": "running"}`, still being analysed;
 - the analysis' own error (e.g. `422 audio_unreadable`);
 - `404 analysis_not_found`: unknown, sent by another install, or over 24 h old.

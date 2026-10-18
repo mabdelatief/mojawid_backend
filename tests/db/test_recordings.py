@@ -268,3 +268,11 @@ async def test_the_report_limit_applies(migrated_database: str, worker: FakeWork
         assert (await report(c, first, fresh)).status_code == 201
         limited = await report(c, second, fresh)
         assert (limited.status_code, limited.json()["error"]["code"]) == (429, "rate_limited")
+
+
+async def test_the_result_get_carries_the_recording_id(client: httpx.AsyncClient) -> None:
+    cid = uuid.uuid4()
+    posted = await post(client, cid, headers={**HEADERS, "Content-Type": "audio/wav"})
+    got = await client.get(f"/v1/analyses/{cid}", headers=HEADERS)
+    assert got.status_code == 200
+    assert got.headers["X-Recording-Id"] == posted.headers["X-Recording-Id"]

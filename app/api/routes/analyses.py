@@ -59,11 +59,13 @@ async def post_analysis(
     responses={status.HTTP_202_ACCEPTED: {"model": AnalysisPending}},
 )
 async def get_analysis(
-    client_id: uuid.UUID, client: ClientDep, service: ServiceDep
+    client_id: uuid.UUID, client: ClientDep, service: ServiceDep, response: Response
 ) -> AnalysisResult | JSONResponse:
     """The result (200), still running (202), the analysis' own error, or 404. Ask this after a
-    timeout, before sending the recording again."""
+    timeout, before sending the recording again. A 200 carries `X-Recording-Id`, as POST does."""
     found = await service.result(client, client_id)
     if isinstance(found, AnalysisPending):
         return JSONResponse(found.model_dump(), status_code=status.HTTP_202_ACCEPTED)
-    return found
+    if found.recording_id is not None:
+        response.headers["X-Recording-Id"] = str(found.recording_id)
+    return found.result

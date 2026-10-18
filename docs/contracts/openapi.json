@@ -1820,7 +1820,7 @@
     },
     "/v1/analyses/{client_id}": {
       "get": {
-        "description": "The result (200), still running (202), the analysis' own error, or 404. Ask this after a\ntimeout, before sending the recording again.",
+        "description": "The result (200), still running (202), the analysis' own error, or 404. Ask this after a\ntimeout, before sending the recording again. A 200 carries `X-Recording-Id`, as POST does.",
         "operationId": "get_analysis",
         "parameters": [
           {
