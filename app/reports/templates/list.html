@@ -13,7 +13,7 @@ after the keep period. Reports whose recording never arrived are removed after a
     <td>{{ row.text }}</td>
     <td>{{ row.word }}</td>
     <td>{{ r.platform }}</td>
-    <td>{% if r.audio_key %}yes{% elif r.reviewed_at %}deleted{% else %}<span class="muted">not sent</span>{% endif %}</td>
+    <td>{% if r.recording_id %}<a href="/admin/recordings">kept recording</a>{% elif r.audio_key %}yes{% elif r.reviewed_at %}deleted{% else %}<span class="muted">not sent</span>{% endif %}</td>
     <td>{% if r.reviewed_at %}<span class="tag">reviewed</span>{% else %}<span class="tag open">open</span>{% endif %}</td>
   </tr>
   {% else %}

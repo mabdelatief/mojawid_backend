@@ -83,6 +83,11 @@ to "analysed, then discarded" (CLAUDE.md).
   replaced on each run. Away from home it fails and the next run catches up. Run it by hand
   with `tools/recordings/backup.sh`.
 - **Size:** at most 2 MiB a recording; 1,000 recordings are under 2 GB.
+- **Reports on a recording** (2026-10-18): a tester can report a recording's result as wrong,
+  once per recording (`POST /v1/recordings/{id}/report`). The report joins the bad-result reports
+  on the admin page and plays the kept recording. «Reviewed» never deletes the kept recording.
+  The hourly purge doesn't remove these reports, so a recording stays "reported". Deleting the
+  recording deletes its report.
 
 ## Settings and keys (`.env.deploy`)
 

@@ -634,6 +634,17 @@
             "title": "Mode",
             "type": "string"
           },
+          "report": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecordingReport"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set once the result was reported as wrong; it can't be reported again."
+          },
           "result": {
             "anyOf": [
               {
@@ -691,6 +702,7 @@
           "summary",
           "status",
           "error_code",
+          "report",
           "result",
           "error_message"
         ],
@@ -746,6 +758,17 @@
             "title": "Mode",
             "type": "string"
           },
+          "report": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecordingReport"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set once the result was reported as wrong; it can't be reported again."
+          },
           "status": {
             "enum": [
               "running",
@@ -792,7 +815,8 @@
           "duration_s",
           "summary",
           "status",
-          "error_code"
+          "error_code",
+          "report"
         ],
         "title": "RecordingItem",
         "type": "object"
@@ -824,6 +848,141 @@
           "next_before"
         ],
         "title": "RecordingPage",
+        "type": "object"
+      },
+      "RecordingReport": {
+        "description": "The one report on this recording's result: shown to every tester in place of the button.",
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "enum": [
+                  "false_mistake",
+                  "missed_mistake",
+                  "wrong_ayat",
+                  "other"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "reporter": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The part of the reporter's login email before «@»; null for a phone build.",
+            "title": "Reporter"
+          }
+        },
+        "required": [
+          "created_at",
+          "reporter",
+          "category",
+          "note"
+        ],
+        "title": "RecordingReport",
+        "type": "object"
+      },
+      "RecordingReportCreate": {
+        "description": "POST /v1/recordings/{id}/report: this recording's result is wrong. No consent or upload is\nneeded: the recording is already kept.",
+        "properties": {
+          "app_version": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Version"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "enum": [
+                  "false_mistake",
+                  "missed_mistake",
+                  "wrong_ayat",
+                  "other"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "false_mistake «أشار إلى خطأ لم يُرتكب», missed_mistake «لم يلاحظ خطأً», wrong_ayat «تعرّف على آيات غير المقروءة», other «شيء آخر».",
+            "title": "Category"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "word": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportWord"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "RecordingReportCreate",
+        "type": "object"
+      },
+      "RecordingReportCreated": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "report": {
+            "$ref": "#/components/schemas/RecordingReport"
+          }
+        },
+        "required": [
+          "id",
+          "report"
+        ],
+        "title": "RecordingReportCreated",
         "type": "object"
       },
       "RecordingText": {
@@ -1103,6 +1262,34 @@
           "upload_audio_until"
         ],
         "title": "ReportCreated",
+        "type": "object"
+      },
+      "ReportWord": {
+        "description": "The word the user points at, indexed within its ayah as everywhere else.",
+        "properties": {
+          "aya": {
+            "minimum": 1.0,
+            "title": "Aya",
+            "type": "integer"
+          },
+          "sura": {
+            "maximum": 114.0,
+            "minimum": 1.0,
+            "title": "Sura",
+            "type": "integer"
+          },
+          "word": {
+            "minimum": 0.0,
+            "title": "Word",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sura",
+          "aya",
+          "word"
+        ],
+        "title": "ReportWord",
         "type": "object"
       },
       "Summary": {
@@ -2480,6 +2667,132 @@
           }
         },
         "summary": "Get Recording Audio",
+        "tags": [
+          "recordings"
+        ]
+      }
+    },
+    "/v1/recordings/{recording_id}/report": {
+      "post": {
+        "description": "Report this recording's result as wrong. Once per recording, by anyone: a second report\ngets 409 recording_already_reported, and every tester sees the first in `report`.",
+        "operationId": "report_recording",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "recording_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Recording Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-install-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Install-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordingReportCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordingReportCreated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid API key"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          }
+        },
+        "summary": "Report Recording",
         "tags": [
           "recordings"
         ]

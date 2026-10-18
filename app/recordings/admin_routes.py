@@ -14,6 +14,7 @@ from fastapi.templating import Jinja2Templates
 from app.api.deps import SettingsDep
 from app.config import Settings
 from app.db.models.recording import Recording
+from app.db.models.report import Report
 from app.recordings.routes import ServiceDep
 from app.recordings.service import item_of
 from app.reports.admin_auth import check_csrf, csrf_token, require_admin
@@ -33,8 +34,8 @@ PAGE_HEADERS = {
 SHOWN = 200
 
 
-def row_of(rec: Recording, settings: Settings) -> dict[str, Any]:
-    item = item_of(rec)
+def row_of(rec: Recording, report: Report | None, settings: Settings) -> dict[str, Any]:
+    item = item_of(rec, report)
     t = item.text
     return {
         "item": item,
@@ -42,6 +43,7 @@ def row_of(rec: Recording, settings: Settings) -> dict[str, Any]:
         "text": f"{t.sura or '?'}:{t.aya_start or '?'}–{t.aya_end or '?'}",
         "kb": round(rec.size_bytes / 1024),
         "csrf_delete": csrf_token(settings, f"delete-recording:{rec.id}"),
+        "report_id": report.id if report is not None else None,
     }
 
 
@@ -54,7 +56,7 @@ async def _form_token(request: Request) -> str:
 async def admin_recordings(
     request: Request, service: ServiceDep, settings: SettingsDep
 ) -> HTMLResponse:
-    rows = [row_of(r, settings) for r in await service.recent(SHOWN)]
+    rows = [row_of(r, rep, settings) for r, rep in await service.recent(SHOWN)]
     context = {"rows": rows, "shown": SHOWN}
     return templates.TemplateResponse(request, "recordings.html", context, headers=PAGE_HEADERS)
 

@@ -15,11 +15,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings
 from app.contracts.analysis import AnalysisResult
-from app.contracts.recordings import RecordingDetail, RecordingItem, RecordingPage, RecordingText
+from app.contracts.recordings import (
+    RecordingDetail,
+    RecordingItem,
+    RecordingPage,
+    RecordingReport,
+    RecordingText,
+)
 from app.db.models.recording import Recording
+from app.db.models.report import Report
 from app.errors import AppError
 from app.recordings.keeper import store_for
-from app.repositories.recording_repo import RecordingRepo
+from app.repositories.recording_repo import RecordingRepo, WithReport
 
 MAX_PAGE = 100
 
@@ -47,19 +54,37 @@ def _text(row: Recording) -> RecordingText:
     )
 
 
-def item_of(row: Recording) -> RecordingItem:
+def name_part(email: str | None) -> str | None:
+    return email.split("@")[0] if email else None
+
+
+def report_of(report: Report | None) -> RecordingReport | None:
+    return shown_report(report) if report is not None else None
+
+
+def shown_report(report: Report) -> RecordingReport:
+    return RecordingReport.model_validate({
+        "created_at": report.created_at,
+        "reporter": name_part(report.reporter_email),
+        "category": report.category,
+        "note": report.note,
+    })  # fmt: skip
+
+
+def item_of(row: Recording, report: Report | None) -> RecordingItem:
     result = row.result or {}
     return RecordingItem.model_validate({
         "id": row.id,
         "client_id": row.client_id,
         "created_at": row.created_at,
-        "tester": row.tester_email.split("@")[0] if row.tester_email else None,
+        "tester": name_part(row.tester_email),
         "mode": row.request.get("mode", "manual"),
         "text": _text(row),
         "duration_s": result.get("duration_s"),
         "summary": result.get("summary"),
         "status": row.status,
         "error_code": row.error_code,
+        "report": report_of(report),
     })  # fmt: skip
 
 
@@ -76,14 +101,18 @@ class RecordingService:
         more = len(rows) > size
         rows = rows[:size]
         return RecordingPage(
-            items=[item_of(r) for r in rows], next_before=cursor_of(rows[-1]) if more else None
+            items=[item_of(r, rep) for r, rep in rows],
+            next_before=cursor_of(rows[-1][0]) if more else None,
         )
 
     async def detail(self, recording_id: uuid.UUID) -> RecordingDetail:
-        row = await self._row(recording_id)
+        found = await self.repo.get_with_report(recording_id)
+        if found is None:
+            raise not_found()
+        row, report = found
         result = AnalysisResult.model_validate(row.result) if row.result else None
         return RecordingDetail(
-            **item_of(row).model_dump(), result=result, error_message=row.error_message
+            **item_of(row, report).model_dump(), result=result, error_message=row.error_message
         )
 
     async def audio(self, recording_id: uuid.UUID) -> tuple[Path, str]:
@@ -102,7 +131,7 @@ class RecordingService:
         await self.session.commit()
         await anyio.to_thread.run_sync(self.store.delete, name)
 
-    async def recent(self, limit: int) -> list[Recording]:
+    async def recent(self, limit: int) -> list[WithReport]:
         return await self.repo.page(None, limit)
 
     async def _row(self, recording_id: uuid.UUID) -> Recording:

@@ -51,8 +51,13 @@ class ReportRepo:
         await self.session.execute(delete(Report).where(Report.id == report_id))
 
     async def delete_stale(self, no_audio_before: datetime, reviewed_before: datetime) -> int:
-        """Reports whose audio never came within the window, and reports reviewed long ago."""
+        """Reports whose audio never came within the window, and reports reviewed long ago. A
+        report on a kept recording has no upload and stays, so the recording stays reported."""
         never_sent = (Report.audio_uploaded_at.is_(None)) & (Report.created_at < no_audio_before)
         old_review = Report.reviewed_at < reviewed_before
-        stmt = delete(Report).where(never_sent | old_review).returning(Report.id)
+        stmt = (
+            delete(Report)
+            .where(Report.recording_id.is_(None), never_sent | old_review)
+            .returning(Report.id)
+        )
         return len((await self.session.execute(stmt)).all())

@@ -4,11 +4,17 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import FileResponse
 
 from app.api.deps import ClientDep, SessionDep, SettingsDep
-from app.contracts.recordings import RecordingDetail, RecordingPage
+from app.contracts.recordings import (
+    RecordingDetail,
+    RecordingPage,
+    RecordingReportCreate,
+    RecordingReportCreated,
+)
+from app.recordings.reporting import RecordingReporter
 from app.recordings.service import MAX_PAGE, RecordingService
 
 router = APIRouter(prefix="/v1/recordings", tags=["recordings"])
@@ -51,3 +57,23 @@ async def get_recording_audio(
     """The audio exactly as it was uploaded, with its content type. Range requests work."""
     path, media_type = await service.audio(recording_id)
     return FileResponse(path, media_type=media_type)
+
+
+def recording_reporter(session: SessionDep, settings: SettingsDep) -> RecordingReporter:
+    return RecordingReporter(session, settings)
+
+
+ReporterDep = Annotated[RecordingReporter, Depends(recording_reporter)]
+
+
+@router.post(
+    "/{recording_id}/report",
+    status_code=status.HTTP_201_CREATED,
+    response_model=RecordingReportCreated,
+)
+async def report_recording(
+    recording_id: uuid.UUID, body: RecordingReportCreate, client: ClientDep, reporter: ReporterDep
+) -> RecordingReportCreated:
+    """Report this recording's result as wrong. Once per recording, by anyone: a second report
+    gets 409 recording_already_reported, and every tester sees the first in `report`."""
+    return await reporter.report(client, recording_id, body)

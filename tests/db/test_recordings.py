@@ -18,15 +18,29 @@ from argon2 import PasswordHasher
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from app.db.session import dispose_engine
+from app.api.deps import get_object_store, get_worker
+from app.config import Settings, get_settings
+from app.db.session import dispose_engine, get_engine
 from app.errors import AppError
-from tests.db.test_analyses import AUDIO, HEADERS, FakeWorker, make_client, post
+from app.main import create_app
+from tests.db.test_analyses import AUDIO, HEADERS, FakeWorker, post
 
 PASSWORD = "a long enough password"
 ADMIN = {"Authorization": "Basic " + base64.b64encode(f"admin:{PASSWORD}".encode()).decode()}
 OTHER = {**HEADERS, "X-Install-Id": "7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f"}
 EMAIL = "m.tester@example.com"
 DIR = Path(os.environ["MOJAWID_RECORDINGS_DIR"])
+
+
+def make_client(db: str, worker: FakeWorker, **over: Any) -> httpx.AsyncClient:
+    """The app with a fake worker and no reports bucket (recording reports need none)."""
+    settings = Settings(database_url=db, **over)
+    get_engine(settings)
+    app = create_app(settings)
+    app.dependency_overrides[get_settings] = lambda: settings
+    app.dependency_overrides[get_worker] = lambda: worker
+    app.dependency_overrides[get_object_store] = lambda: None
+    return httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test")
 
 
 @pytest.fixture
@@ -39,7 +53,7 @@ async def client(
     migrated_database: str, engine: AsyncEngine, worker: FakeWorker
 ) -> AsyncIterator[httpx.AsyncClient]:
     async with engine.begin() as conn:
-        await conn.execute(text("TRUNCATE analysis, rate_limit_counter, recording"))
+        await conn.execute(text("TRUNCATE analysis, rate_limit_counter, recording CASCADE"))
     await dispose_engine()
     hashed = PasswordHasher().hash(PASSWORD)
     async with make_client(migrated_database, worker, admin_password_hash=hashed) as c:
@@ -138,3 +152,119 @@ async def test_admin_lists_plays_and_deletes(client: httpx.AsyncClient) -> None:
     assert done.status_code == 303
     assert (await client.get(f"/v1/recordings/{rid}", headers=HEADERS)).status_code == 404
     assert not (DIR / f"{rid}.wav").exists()
+
+
+# --- reporting a recording's result as wrong (once per recording) -----------------------------
+
+REPORT = {"category": "false_mistake", "note": "the madd was right"}
+
+
+async def report(
+    c: httpx.AsyncClient, rid: str, headers: dict[str, str] = HEADERS
+) -> httpx.Response:
+    return await c.post(f"/v1/recordings/{rid}/report", json=REPORT, headers=headers)
+
+
+async def test_reported_once_and_shown_to_everyone(client: httpx.AsyncClient) -> None:
+    rid = await record(client)
+    first = await report(client, rid, {**OTHER, "Cf-Access-Authenticated-User-Email": EMAIL})
+    assert first.status_code == 201, first.text
+    shown = first.json()["report"]
+    assert (shown["reporter"], shown["category"], shown["note"]) == (
+        "m.tester",
+        "false_mistake",
+        "the madd was right",
+    )
+    item = (await client.get("/v1/recordings", headers=HEADERS)).json()["items"][0]
+    assert item["report"] == shown
+    assert (await client.get(f"/v1/recordings/{rid}", headers=HEADERS)).json()["report"] == shown
+    again = await report(client, rid)  # anyone else, later
+    assert (again.status_code, again.json()["error"]["code"]) == (409, "recording_already_reported")
+
+
+async def test_two_reports_at_once_one_wins(client: httpx.AsyncClient) -> None:
+    import asyncio
+
+    rid = await record(client)
+    a, b = await asyncio.gather(report(client, rid), report(client, rid, OTHER))
+    assert sorted([a.status_code, b.status_code]) == [201, 409]
+
+
+async def test_failed_can_be_reported_unknown_cannot(
+    client: httpx.AsyncClient, worker: FakeWorker
+) -> None:
+    worker.raise_error = AppError("ayah_not_recognised", "No ayah was recognised.", 422)
+    await post(client, uuid.uuid4(), headers={**HEADERS, "Content-Type": "audio/wav"})
+    rid = (await client.get("/v1/recordings", headers=HEADERS)).json()["items"][0]["id"]
+    assert (await report(client, rid)).status_code == 201
+    missing = await report(client, str(uuid.uuid4()))
+    assert (missing.status_code, missing.json()["error"]["code"]) == (404, "recording_not_found")
+
+
+async def test_a_running_recording_cannot_be_reported(
+    client: httpx.AsyncClient, engine: AsyncEngine
+) -> None:
+    rid = await record(client)
+    async with engine.begin() as conn:
+        await conn.execute(
+            text("UPDATE recording SET status = 'running' WHERE id = :i"), {"i": rid}
+        )
+    r = await report(client, rid)
+    assert (r.status_code, r.json()["error"]["code"]) == (409, "recording_not_analysed")
+
+
+async def test_recording_reports_survive_purge_and_review(
+    client: httpx.AsyncClient, engine: AsyncEngine
+) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    from sqlalchemy.ext.asyncio import async_sessionmaker
+
+    from app.config import Settings
+    from app.services.maintenance_service import MaintenanceService
+
+    rid = await record(client)
+    report_id = (await report(client, rid)).json()["id"]
+    page = await client.get(f"/admin/reports/{report_id}", headers=ADMIN)
+    assert page.status_code == 200 and f"/admin/recordings/{rid}/audio" in page.text
+    token = re.search(
+        r'/reviewed">\s*<input type="hidden" name="csrf" value="([0-9a-f]+)"', page.text
+    )
+    assert token is not None
+    done = await client.post(
+        f"/admin/reports/{report_id}/reviewed", data={"csrf": token.group(1)}, headers=ADMIN
+    )
+    assert done.status_code == 303
+    assert (DIR / f"{rid}.wav").exists()  # «reviewed» never deletes a kept recording
+    async with async_sessionmaker(engine, expire_on_commit=False)() as session:
+        await MaintenanceService(session, Settings()).purge(datetime.now(UTC) + timedelta(days=90))
+    item = (await client.get(f"/v1/recordings/{rid}", headers=HEADERS)).json()
+    assert item["report"] is not None  # still reported, so it can't be reported again
+
+
+async def test_deleting_the_recording_deletes_its_report(
+    client: httpx.AsyncClient, engine: AsyncEngine
+) -> None:
+    rid = await record(client)
+    report_id = (await report(client, rid)).json()["id"]
+    page = await client.get("/admin/recordings", headers=ADMIN)
+    assert f"/admin/reports/{report_id}" in page.text  # the «reported» tag links to it
+    token = re.search(rf'/admin/recordings/{rid}/delete".*?value="([0-9a-f]+)"', page.text, re.S)
+    assert token is not None
+    await client.post(
+        f"/admin/recordings/{rid}/delete", data={"csrf": token.group(1)}, headers=ADMIN
+    )
+    async with engine.connect() as conn:
+        left = await conn.scalar(
+            text("SELECT count(*) FROM report WHERE id = :i"), {"i": report_id}
+        )
+    assert left == 0
+
+
+async def test_the_report_limit_applies(migrated_database: str, worker: FakeWorker) -> None:
+    fresh = {**HEADERS, "X-Install-Id": str(uuid.uuid4())}  # no counts from earlier tests
+    async with make_client(migrated_database, worker, reports_per_install_day=1) as c:
+        first, second = await record(c, fresh), await record(c, fresh)
+        assert (await report(c, first, fresh)).status_code == 201
+        limited = await report(c, second, fresh)
+        assert (limited.status_code, limited.json()["error"]["code"]) == (429, "rate_limited")

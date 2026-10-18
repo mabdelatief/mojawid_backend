@@ -48,6 +48,8 @@ analyses and bad-result reports.
 | 404 | `recording_not_found` | No such kept recording (or it was deleted) |
 | 400 | `invalid_cursor` | `before` on `/v1/recordings` isn't a `next_before` value |
 | 409 | `report_audio_exists` | The report already has its recording |
+| 409 | `recording_already_reported` | This recording's result was already reported (by anyone); show its `report` instead |
+| 409 | `recording_not_analysed` | The recording is still being analysed; report it once it's done |
 | 410 | `report_upload_expired` | The recording came over an hour after the report |
 | 409 | `analysis_in_progress` | This `client_id` is being analysed right now. Ask `GET /v1/analyses/{client_id}` |
 | 413 | `audio_too_large` | The recording is over 2 MiB |
@@ -349,7 +351,9 @@ result. Same headers as every `/v1` route.
   {"id": "…", "client_id": "…", "created_at": "2026-10-17T18:30:00Z", "tester": "m.abdelatief",
    "mode": "manual", "text": {"sura": 112, "aya_start": 1, "aya_end": 4}, "duration_s": 9.4,
    "summary": {"mistakes": 0, "uncertain": 1, "exact_match": false},
-   "status": "done", "error_code": null}
+   "status": "done", "error_code": null,
+   "report": {"created_at": "2026-10-18T09:12:00Z", "reporter": "m.abdelatief",
+              "category": "false_mistake", "note": "the madd was right"}}
   ```
 
   - `tester`: the part of the tester's login email before «@». It's null for a phone build on the
@@ -362,8 +366,37 @@ result. Same headers as every `/v1` route.
 - **`GET /v1/recordings/{id}/audio`**: the file exactly as it was uploaded, with its
   `Content-Type`. Range requests work. It needs the same headers, so on the web, fetch it with
   them and play the bytes (≤ 2 MiB); an `<audio src>` can't send headers.
+- **`report`** (added 2026-10-18): null, or the one report on this recording's result. It holds
+  `reporter` (the name part of the login email, null from a phone build), `created_at`,
+  `category` and `note`. Show it in place of the report button.
 - **Who made it** is stored as the install and the login email, so "only my recordings" can come
   later as a filter. Deleting happens only on the admin page.
+- **Show the result only on request** (the user's rule, 2026-10-18). The teacher listens and
+  judges first, so the app shows the player and «عرض النتيجة». Neither the list nor the detail
+  page shows `summary` or `result` until it's pressed. The API still sends them; hiding them is
+  the app's job.
+
+### `POST /v1/recordings/{id}/report` (201)
+Report a kept recording's result as wrong. **Once per recording, by anyone:** after the first
+report, every tester sees it in `report`, and another report gets `409
+recording_already_reported`. Two testers pressing at the same moment can't both succeed.
+
+```json
+{"category": "false_mistake", "word": {"sura": 2, "aya": 2, "word": 3}, "note": "…",
+ "app_version": "1.0.0"}
+```
+
+- All fields are optional; the categories are those of `POST /v1/reports`.
+- No consent and no upload: the recording is already kept.
+- The server stores what was shown, the result or the error, and the reading settings, taken from
+  the recording.
+- Returns `{"id": "<report id>", "report": {…}}`, the same `report` the list now shows.
+- `done` and `failed` recordings can be reported. A `running` one gets `409
+  recording_not_analysed`; an unknown id gets `404 recording_not_found`.
+- **Limits:** the report limits (10 a day per install, 30 per network).
+- **The tester's own result after recording uses this too.** Take the id from `X-Recording-Id`.
+  `POST /v1/reports` with its separate upload still works, but a report sent that way doesn't
+  count as "reported" on the recording.
 
 ## Coming
 

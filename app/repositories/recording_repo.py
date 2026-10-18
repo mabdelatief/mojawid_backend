@@ -10,6 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.analysis import DONE, FAILED, RUNNING
 from app.db.models.recording import Recording
+from app.db.models.report import Report
+
+# A recording with its report (at most one, by the report table's unique key), or None.
+WithReport = tuple[Recording, Report | None]
 
 
 class RecordingRepo:
@@ -37,6 +41,15 @@ class RecordingRepo:
         found: Recording | None = await self.session.get(Recording, recording_id)
         return found
 
+    async def get_with_report(self, recording_id: uuid.UUID) -> WithReport | None:
+        stmt = self._with_report().where(Recording.id == recording_id)
+        row = (await self.session.execute(stmt)).first()
+        return (row[0], row[1]) if row is not None else None
+
+    @staticmethod
+    def _with_report() -> Any:
+        return select(Recording, Report).outerjoin(Report, Report.recording_id == Recording.id)
+
     async def finish(self, recording_id: uuid.UUID, result: dict[str, Any]) -> None:
         await self._set(recording_id, status=DONE, result=result, error_code=None)
 
@@ -51,12 +64,13 @@ class RecordingRepo:
         )
         await self.session.execute(stmt)
 
-    async def page(self, before: tuple[datetime, uuid.UUID] | None, limit: int) -> list[Recording]:
+    async def page(self, before: tuple[datetime, uuid.UUID] | None, limit: int) -> list[WithReport]:
         """Newest first; `before` is the (created_at, id) of the last row of the previous page."""
-        stmt = select(Recording).order_by(Recording.created_at.desc(), Recording.id.desc())
+        stmt = self._with_report().order_by(Recording.created_at.desc(), Recording.id.desc())
         if before is not None:
             stmt = stmt.where(tuple_(Recording.created_at, Recording.id) < before)
-        return list((await self.session.scalars(stmt.limit(limit))).all())
+        rows = (await self.session.execute(stmt.limit(limit))).all()
+        return [(r[0], r[1]) for r in rows]
 
     async def remove(self, recording_id: uuid.UUID) -> str | None:
         """Delete the row; returns its file name, or None when there was no such row."""

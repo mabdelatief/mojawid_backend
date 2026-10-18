@@ -14,7 +14,8 @@ can play it in the app. «Delete» removes the recording and its result for good
     <td>{{ row.email }}</td>
     <td>{{ row.text }}</td>
     <td>{{ r.mode }}</td>
-    <td>{% if r.status == "done" and r.summary %}{{ r.summary.mistakes }} mistakes, {{ r.summary.uncertain }} uncertain{% elif r.status == "failed" %}<span class="tag open">{{ r.error_code }}</span>{% else %}<span class="muted">running</span>{% endif %}</td>
+    <td>{% if r.status == "done" and r.summary %}{{ r.summary.mistakes }} mistakes, {{ r.summary.uncertain }} uncertain{% elif r.status == "failed" %}<span class="tag open">{{ r.error_code }}</span>{% else %}<span class="muted">running</span>{% endif %}
+      {% if row.report_id %}<br><a class="tag open" href="/admin/reports/{{ row.report_id }}">reported</a>{% endif %}</td>
     <td><audio controls preload="none" src="/admin/recordings/{{ r.id }}/audio"></audio><span class="muted">{{ row.kb }} KB</span></td>
     <td><form method="post" action="/admin/recordings/{{ r.id }}/delete" onsubmit="return confirm('Delete this recording and its result for good?')">
       <input type="hidden" name="csrf" value="{{ row.csrf_delete }}"><button class="danger">Delete</button></form></td>

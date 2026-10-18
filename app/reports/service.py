@@ -117,6 +117,8 @@ class ReportService:
         return report
 
     async def audio_url(self, report: Report) -> str | None:
+        if report.recording_id is not None:  # the kept recording, on this machine
+            return f"/admin/recordings/{report.recording_id}/audio"
         if report.audio_key is None or self.store is None:
             return None
         return await self.store.signed_url(report.audio_key, SIGNED_URL_SECONDS)

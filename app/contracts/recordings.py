@@ -7,6 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from app.contracts.analysis import AnalysisResult, Summary
+from app.contracts.reports import ReportCategory, ReportWord
 
 
 class RecordingText(BaseModel):
@@ -16,6 +17,17 @@ class RecordingText(BaseModel):
     sura: int | None
     aya_start: int | None
     aya_end: int | None
+
+
+class RecordingReport(BaseModel):
+    """The one report on this recording's result: shown to every tester in place of the button."""
+
+    created_at: datetime
+    reporter: str | None = Field(
+        description="The part of the reporter's login email before «@»; null for a phone build."
+    )
+    category: ReportCategory | None
+    note: str | None
 
 
 class RecordingItem(BaseModel):
@@ -34,6 +46,9 @@ class RecordingItem(BaseModel):
     summary: Summary | None = Field(description="Null until analysed, or when it failed.")
     status: Literal["running", "done", "failed"]
     error_code: str | None
+    report: RecordingReport | None = Field(
+        description="Set once the result was reported as wrong; it can't be reported again."
+    )
 
 
 class RecordingPage(BaseModel):
@@ -48,3 +63,22 @@ class RecordingDetail(RecordingItem):
 
     result: AnalysisResult | None
     error_message: str | None
+
+
+class RecordingReportCreate(BaseModel):
+    """POST /v1/recordings/{id}/report: this recording's result is wrong. No consent or upload is
+    needed: the recording is already kept."""
+
+    category: ReportCategory | None = Field(
+        default=None,
+        description="false_mistake «أشار إلى خطأ لم يُرتكب», missed_mistake «لم يلاحظ خطأً», "
+        "wrong_ayat «تعرّف على آيات غير المقروءة», other «شيء آخر».",
+    )
+    word: ReportWord | None = None
+    note: str | None = Field(default=None, max_length=1000)
+    app_version: str | None = Field(default=None, max_length=40)
+
+
+class RecordingReportCreated(BaseModel):
+    id: uuid.UUID
+    report: RecordingReport

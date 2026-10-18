@@ -22,7 +22,7 @@ PAGE_HEADERS = {
     "Cache-Control": "no-store",
     "X-Frame-Options": "DENY",
     "Content-Security-Policy": "default-src 'self'; style-src 'unsafe-inline'; "
-    "media-src https://*.linodeobjects.com; form-action 'self'; frame-ancestors 'none'",
+    "media-src 'self' https://*.linodeobjects.com; form-action 'self'; frame-ancestors 'none'",
 }
 CATEGORY = {
     "false_mistake": "Marked a mistake I didn't make",
