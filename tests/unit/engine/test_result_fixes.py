@@ -18,18 +18,31 @@ from app.engine.text.moshaf import build_moshaf
 from app.engine.text.qt import alph
 from app.engine.text.readable import SHADDA, describe
 from app.engine.text.reference import build_reference_from_structure
-from app.engine.text.structure import TextSelection, default_structure
+from app.engine.text.structure import Structure, TextSelection, default_structure
 
 P = alph.phonetics
 M = build_moshaf()
 
 
-def _perfect(sura: int, aya: int) -> tuple[Any, list[dict[str, Any]]]:
-    """The sifat table for a perfect recitation of an ayah: heard script and sifat as expected."""
-    ref = build_reference_from_structure(default_structure(TextSelection(sura, aya), M), M)
+def _perfect(
+    sura: int,
+    aya: int,
+    st: Structure | None = None,
+    heard_as: dict[int, dict[str, str]] | None = None,
+) -> tuple[Any, list[dict[str, Any]]]:
+    """The sifat table for a perfect recitation of an ayah (or of `st`): heard script and sifat
+    as expected, except the values in `heard_as` (group index -> level -> value)."""
+    ref = build_reference_from_structure(st or default_structure(TextSelection(sura, aya), M), M)
+    heard_as = heard_as or {}
     sifat = [
-        HeardGroup(s.phonemes, {lv: SifaValue(getattr(s, lv), 0.99, 1) for lv in SIFAT_LEVELS})
-        for s in ref.phonetic.sifat
+        HeardGroup(
+            s.phonemes,
+            {
+                lv: SifaValue(heard_as.get(i, {}).get(lv, getattr(s, lv)), 0.99, 1)
+                for lv in SIFAT_LEVELS
+            },
+        )
+        for i, s in enumerate(ref.phonetic.sifat)
     ]
     sure = {lv: [True] * len(sifat) for lv in SIFAT_LEVELS}
     heard = Heard(
@@ -55,6 +68,41 @@ def test_a_perfect_recitation_gives_a_clean_sifat_table(sura: int, aya: int) -> 
     assert len(rows) == len(ref.phonetic.sifat)
     assert all(r["tag"] == "exact" and r["ref"] == r["pred"] for r in rows)
     assert not [lv for r in rows for lv, v in r["attrs"].items() if v["mismatch"]]
+
+
+@pytest.mark.parametrize(
+    "st",
+    [
+        # stopped on «فِيهِ», then «هُدًى»: one «ه» group in the whole script, two word by word
+        Structure(2, 1, 3, segments=[(0, 0), (1, 5), (6, 7), (8, 15)]),
+        Structure(
+            2, 1, 3, prefixes=("istiadha", "basmala"), segments=[(0, 0), (1, 5), (6, 7), (8, 15)]
+        ),
+        default_structure(TextSelection(1, 1, 7), M),  # «ٱلرَّحِيمِ» stopped on, then «مَٰلِكِ»
+    ],
+)
+def test_a_letter_doubled_across_words_keeps_the_table_whole(st: Structure) -> None:
+    # 2026-10-18: the worker crashed (IndexError) on the user's 2:1-3 stopped on «فيه»
+    ref, rows = _perfect(st.sura, st.aya_start, st)
+    assert len(rows) == len(ref.phonetic.sifat)
+    assert all(r["tag"] == "exact" for r in rows)
+    assert not [lv for r in rows for lv, v in r["attrs"].items() if v["mismatch"]]
+
+
+def test_allowed_stays_on_its_letter_after_a_doubled_letter() -> None:
+    # «قَوْمٌۭ» stopped on, then «مُّجْرِمُونَ»; «فَأَسْرِ» stopped on: its raa may be either
+    st = Structure(44, 22, 23, segments=[(0, 4), (5, 6), (7, 10)])
+    ref = build_reference_from_structure(st, M)
+    raa = [i for i, s in enumerate(ref.phonetic.sifat) if s.phonemes[0] == P.raa][2]
+    other = {"mofakham": "moraqaq", "moraqaq": "mofakham"}
+    flipped = other[ref.phonetic.sifat[raa].tafkheem_or_taqeeq]
+    _, rows = _perfect(44, 22, st, {raa: {"tafkheem_or_taqeeq": flipped}})
+    row = next(r for r in rows if r["ref_idx"] == raa)
+    assert row["attrs"]["tafkheem_or_taqeeq"] == row["attrs"]["tafkheem_or_taqeeq"] | {
+        "mismatch": True,
+        "allowed": True,
+    }
+    assert not [r for r in rows if r is not row and any(v["allowed"] for v in r["attrs"].values())]
 
 
 def test_pair_groups() -> None:

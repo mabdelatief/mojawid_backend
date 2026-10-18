@@ -14,8 +14,15 @@ segment_groups, whose merge_same_phoneme_group pairs a letter with its neighbour
 group's text is inside the next (the lam of «ٱللَّهُ» with the lam before it): on a perfect
 recitation it dropped 1,200 rows over the whole Quran and showed 227 made-up tafkheem
 mismatches.
+
+Fixed in Mojawid (2026-10-18): a row's place for `allowed` is found by its phoneme position. The
+phonetizer's groups are cut word by word and `ref_groups` cuts the whole script, so the same
+letter ending one word and starting the next («الرحيم مالك», «فيه» stopped on, then «هدى») is
+two groups in one list and one in the other. The index of one list shifted, or ran past the end
+of, the other. Both halves of such a merged group get its place.
 """
 
+from bisect import bisect_right
 from typing import Any
 
 import Levenshtein
@@ -94,10 +101,22 @@ def _attr(level: str, ctx: tuple[Any, Any, Heard, Any], allowed: bool) -> dict[s
     }
 
 
-def _allowed_levels(ref: Reference, groups: list[RefGroup], ref_idx: int | None) -> set[str]:
-    if ref_idx is None:
+def places(ref: Reference) -> list[RefGroup]:
+    """For each of the phonetizer's letter groups, the `ref_groups` group holding its first
+    phoneme."""
+    groups = ref_groups(ref)
+    starts = [g.start for g in groups]
+    out, pos = [], 0
+    for s in ref.phonetic.sifat:
+        out.append(groups[bisect_right(starts, pos) - 1])
+        pos += len(s.phonemes)
+    return out
+
+
+def _allowed_levels(ref: Reference, place: RefGroup | None) -> set[str]:
+    if place is None:
         return set()
-    return {lv for lv in SIFAT_LEVELS if both_valid_for(ref, groups[ref_idx], lv) is not None}
+    return {lv for lv in SIFAT_LEVELS if both_valid_for(ref, place, lv) is not None}
 
 
 def sifat_rows(heard: Heard, ref: Reference) -> list[Row]:
@@ -105,13 +124,13 @@ def sifat_rows(heard: Heard, ref: Reference) -> list[Row]:
     exp_sifat = ref.phonetic.sifat
     ref_g = [s.phonemes for s in exp_sifat]
     heard_g = [s.phonemes_group for s in heard.sifat]
-    groups = ref_groups(ref)
+    at = places(ref)
     rows = []
     for ri, hi in pair_groups(ref_g, heard_g):
         r, o = (ref_g[ri] if ri is not None else ""), (heard_g[hi] if hi is not None else "")
         exp = exp_sifat[ri] if ri is not None else None
         got = heard.sifat[hi] if hi is not None else None
-        allowed = _allowed_levels(ref, groups, ri)
+        allowed = _allowed_levels(ref, at[ri] if ri is not None else None)
         ctx = (exp, got, heard, hi)
         rows.append(
             {"tag": tag_of(r, o), "ref": r, "pred": o, "ref_text": describe(r),
